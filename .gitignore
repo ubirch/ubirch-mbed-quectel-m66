@@ -1,0 +1,9 @@
+# Created by .ignore support plugin (hsz.mobi)
+cmake-build-*
+.idea
+BUILD
+mbed-os
+.mbed
+core
+mbed_settings.py
+mbed_settings.pyc
