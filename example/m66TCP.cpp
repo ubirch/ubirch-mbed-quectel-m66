@@ -4,9 +4,7 @@
  */
 
 #include "mbed.h"
-#include "BME280.h"
-#include "M66/M66Interface.h"
-#include "config.h"
+#include "../M66Interface.h"
 
 #define STACK_SIZE 24000
 
