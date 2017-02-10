@@ -140,6 +140,15 @@ const char *M66ATParser::getIPAddress(void) {
     return _ip_buffer;
 }
 
+const char *M66ATParser::getIMEI() {
+    if (!(tx("AT+GSN") && scan("%s", _imei))) {
+        return 0;
+    }
+
+    return _imei;
+}
+
+
 bool M66ATParser::isConnected(void) {
     return getIPAddress() != 0;
 }

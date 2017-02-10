@@ -95,6 +95,10 @@ const char *M66Interface::get_ip_address()
     return _m66.getIPAddress();
 }
 
+const char *M66Interface::get_imei(){
+    return _m66.getIMEI();
+}
+
 struct m66_socket {
     int id;
     nsapi_protocol_t proto;

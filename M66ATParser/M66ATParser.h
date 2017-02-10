@@ -78,6 +78,13 @@ public:
     const char *getIPAddress(void);
 
     /**
+     * Get the IP address of M66
+     *
+     * @return null-teriminated IP address or null if no IP address is assigned
+     */
+    const char *getIMEI();
+
+    /**
     * Check if M66 is connected
     *
     * @return true only if the chip has an IP address
@@ -218,6 +225,7 @@ private:
 
     uint32_t _timeout;
     char _ip_buffer[16];
+    char _imei[16];
 };
 
 #endif

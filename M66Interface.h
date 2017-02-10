@@ -88,6 +88,11 @@ public:
      */
     virtual const char *get_ip_address();
 
+    /** Get the internally stored IP address
+     *  @return             IP address of the interface or null if not yet connected
+     */
+    const char *get_imei();
+
     /** Translates a hostname to an IP address with specific version
      *
      *  The hostname may be either a domain name or an IP address. If the
