@@ -22,6 +22,7 @@
  */
 
 #include <string.h>
+#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
 #include "M66Interface.h"
 
 // Various timeouts for different ESP8266 operations
@@ -38,6 +39,10 @@ M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPi
     memset(_cbs, 0, sizeof(_cbs));
 
     _m66.attach(this, &M66Interface::event);
+}
+
+int M66Interface::reset(void) {
+    return _m66.startup();
 }
 
 int M66Interface::connect(const char *apn, const char *userName, const char *passPhrase)
@@ -97,6 +102,14 @@ const char *M66Interface::get_ip_address()
 
 const char *M66Interface::get_imei(){
     return _m66.getIMEI();
+}
+
+bool M66Interface::get_location_date(char *lat, char *lon, rtc_datetime_t *datetime) {
+    return _m66.getLocation(lat, lon, datetime);
+}
+
+bool M66Interface::getModemBattery(uint8_t *status, int *level, int *voltage){
+    return _m66.modem_battery(status, level, voltage);
 }
 
 struct m66_socket {

@@ -85,6 +85,27 @@ public:
     const char *getIMEI();
 
     /**
+     * Get the Latitude, Longitude, Date and Time of the device
+     *
+     * @param lat latitude
+     * @param lon longitude
+     * @param datetime struct contains date and time
+     * @return null-teriminated IP address or null if no IP address is assigned
+     */
+    bool getLocation(char *lat, char *lon, rtc_datetime_t *datetime);
+
+
+    /**
+     * Get the Battery status, level and voltage of the device
+     *
+     * @param status battery status
+     * @param level battery level
+     * @param voltage battery voltage
+     * @return return false if
+     */
+    bool modem_battery(uint8_t *status, int *level, int *voltage);
+
+    /**
     * Check if M66 is connected
     *
     * @return true only if the chip has an IP address

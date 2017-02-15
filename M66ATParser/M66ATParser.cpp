@@ -22,6 +22,8 @@
  */
 
 #include <cctype>
+#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
+#include <string>
 #include "mbed_debug.h"
 #include "M66ATParser.h"
 
@@ -109,6 +111,8 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
         // attach GPRS
         if (!(tx("AT+QIDEACT") && rx("DEACT OK", 5))) continue;
 
+        if (!(tx("AT+CFUN=1") && rx("OK", 10))) continue;
+
         for (int attachTries = 0; !attached && attachTries < 20; attachTries++) {
             cgtt_time = true;
             attached = tx("AT+CGATT=1") && rx("OK", 10);
@@ -148,6 +152,49 @@ const char *M66ATParser::getIMEI() {
     return _imei;
 }
 
+bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
+
+    char response[32] = "";
+
+    string responseLon;
+    string responseLat;
+
+    // get location
+    if ((tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response))){
+
+        string str(response);
+        size_t found = str.find(",");
+
+        responseLat = str.substr(0, found - 1);
+        responseLon = str.substr(found + 1);
+        strcpy(lat, responseLat.c_str());
+        strcpy(lon, responseLon.c_str());
+    }
+
+    tx("AT+QNITZ=1");
+    rx("OK");
+    tx("AT+CTZU=2");
+    rx("OK");
+
+    // get network time
+    int timezone, saving;
+    if (!((tx("AT+QLTS")) && (scan("+QLTS: \"%d/%d/%d,%d:%d:%d+%d,1\"",
+                                 &datetime->year, &datetime->month, &datetime->day,
+                                 &datetime->hour, &datetime->minute, &datetime->second,
+                                 &timezone, &saving)))) {
+//        return -1;
+    }
+    datetime->year += 2000;
+
+    return true;
+}
+
+
+bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
+
+    if(!(tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage))) return false;
+    return true;
+}
 
 bool M66ATParser::isConnected(void) {
     return getIPAddress() != 0;
@@ -321,7 +368,7 @@ bool M66ATParser::tx(const char *pattern, ...) {
 int M66ATParser::scan(const char *pattern, ...) {
     char response[512];
     do {
-        readline(response, 512 - 1, 5);
+        readline(response, 512 - 1, 10);
     } while (checkURC(response) != -1);
 
     va_list ap;

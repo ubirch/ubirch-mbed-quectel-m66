@@ -28,6 +28,7 @@
 #ifndef M66_INTERFACE_H
 #define M66_INTERFACE_H
 
+#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
 #include"mbed.h"
 #include "M66ATParser.h"
 
@@ -47,6 +48,8 @@ public:
      * @param debug     Enable debugging
      */
     M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug = false);
+
+    int reset(void);
 
     /** Start the interface
      *
@@ -92,6 +95,26 @@ public:
      *  @return             IP address of the interface or null if not yet connected
      */
     const char *get_imei();
+
+    /**
+     * Get the Latitude, Longitude, Date and Time of the device
+     *
+     * @param lat latitude
+     * @param lon longitude
+     * @param datetime struct contains date and time
+     * @return null-teriminated IP address or null if no IP address is assigned
+     */
+    bool get_location_date(char *lat, char *lon, rtc_datetime_t *datetime);
+
+    /**
+     * Get the Battery status, level and voltage of the device
+     *
+     * @param status battery status
+     * @param level battery level
+     * @param voltage battery voltage
+     * @return return false if
+     */
+    bool getModemBattery(uint8_t *status, int *level, int *voltage);
 
     /** Translates a hostname to an IP address with specific version
      *
