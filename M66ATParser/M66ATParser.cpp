@@ -44,7 +44,7 @@ bool M66ATParser::startup(void) {
                    && tx("AT+QIMUX=1") && rx("OK");
 
     // TODO identify the URC for data available
-    //_parser.oob("+RECEIVE: ", this, &M66ATParser::_packet_handler);
+//    _parser.oob("+RECEIVE: ", this, &M66ATParser::_packet_handler);
 
     return success;
 }
@@ -82,7 +82,11 @@ bool M66ATParser::reset(void) {
 //        modemOn = tx("ATE0") && scan("%3s", response)
 //                  &&  (!strncmp("ATE0", response, 3) || !strncmp("OK", response, 2))
 //                  && tx("AT+QIURC=1") && rx("OK");
-        modemOn = tx("ATE0") && rx("ATE0") && rx("OK")
+        tx("ATE0");
+        rx("OK");
+        tx("AT&W");
+        rx("OK");
+        modemOn = tx("ATE0") && rx("OK")
                   && tx("ATE0") && rx("OK")
                   && tx("AT+QIURC=1") && rx("OK");
     }
