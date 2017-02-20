@@ -27,11 +27,16 @@
 #include "mbed_debug.h"
 #include "M66ATParser.h"
 
-#define CIODEBUG(...) debug_if(true, __VA_ARGS__)
-#define CSTDEBUG(...) debug_if(true, __VA_ARGS__)
+#ifdef NCIODEBUG
+#  define CIODEBUG(...)
+#  define CSTDEBUG(...)                    /*!< Standard debug message (info) */
+#else
+#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
+#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
+#endif
 
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
-        : _serial(txPin, rxPin, 1024), _packets(0), _packets_end(&_packets), _resetPin(rstPin), _powerPin(pwrPin) {
+        : _serial(txPin, rxPin, 521), _packets(0), _packets_end(&_packets), _resetPin(rstPin), _powerPin(pwrPin) {
     // TODO make baud rate configurable for Modem code
     _serial.baud(115200);
 }
