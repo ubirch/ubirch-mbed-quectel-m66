@@ -98,6 +98,33 @@ bool M66ATParser::reset(void) {
     return modemOn;
 }
 
+bool M66ATParser::requestDateTime() {
+
+    bool tdStatus = false;
+
+    tdStatus = (tx("AT+QNITZ=1") && rx("OK")
+                && tx("AT+CTZU=1") && rx("OK")
+                && tx("AT+CFUN=1") && rx("OK", 10));
+
+    bool connected = false;
+    for (int networkTries = 0; !connected && networkTries < 20; networkTries++) {
+        int bearer = -1, status = -1;
+        if (tx("AT+CGREG?") && scan("+CGREG: %d,%d", &bearer, &status) && rx("OK", 15)) {
+            // TODO add an enum of status codes
+            connected = status == 1 || status == 5;
+        }
+        // TODO check if we need to use thread wait
+        wait_ms(1000);
+    }
+
+    tdStatus &=  (tx("AT+QNTP=\"rustime02.rus.uni-stuttgart.de\"")
+                 && rx("OK"));
+
+    if (tdStatus) return true;
+
+    return false;
+}
+
 bool cgtt_time = false;
 
 bool M66ATParser::connect(const char *apn, const char *userName, const char *passPhrase) {
@@ -120,12 +147,8 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
         // attach GPRS
         if (!(tx("AT+QIDEACT") && rx("DEACT OK", 5))) continue;
 
-        if (!(tx("AT+CFUN=1") && rx("OK", 10))) continue;
-
         for (int attachTries = 0; !attached && attachTries < 20; attachTries++) {
-            cgtt_time = true;
             attached = tx("AT+CGATT=1") && rx("OK", 10);
-            cgtt_time = false;
             wait_ms(2000);
         }
         if (!attached) continue;
@@ -137,6 +160,9 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
                 tx("AT+QIREGAPP") && rx("OK") &&
                 tx("AT+QIACT") && rx("OK");
     }
+
+    // Send request to get the local time
+    requestDateTime();
 
     return connected && attached;
 }
@@ -157,7 +183,6 @@ const char *M66ATParser::getIMEI() {
     if (!(tx("AT+GSN") && scan("%s", _imei))) {
         return 0;
     }
-
     return _imei;
 }
 
@@ -180,20 +205,21 @@ bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
         strcpy(lon, responseLon.c_str());
     }
 
-    tx("AT+QNITZ=1");
-    rx("OK");
-    tx("AT+CTZU=2");
-    rx("OK");
-
     // get network time
-    int timezone, saving;
-    if (!((tx("AT+QLTS")) && (scan("+QLTS: \"%d/%d/%d,%d:%d:%d+%d,1\"",
-                                 &datetime->year, &datetime->month, &datetime->day,
-                                 &datetime->hour, &datetime->minute, &datetime->second,
-                                 &timezone, &saving)))) {
-//        return -1;
+    int timezone;
+    if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
+                                   &datetime->year, &datetime->month, &datetime->day,
+                                   &datetime->hour, &datetime->minute, &datetime->second,
+                                   &timezone)))) {
+        CSTDEBUG("No time receives");
     }
+
     datetime->year += 2000;
+
+    CSTDEBUG("the time is %d/%d/%d::%d:%d:%d::%d\r\n",
+             datetime->year, datetime->month, datetime->day,
+             datetime->hour, datetime->minute, datetime->second,
+             timezone);
 
     return true;
 }
@@ -412,6 +438,11 @@ int M66ATParser::checkURC(const char *response) {
         || !strncmp("+CPIN: READY", response, 12)
            ) {
         return 0;
+    }
+    if (!strncmp("+QNTP: 0", response, 8)){
+        char getdatetime[32];
+        bool what = tx("AT+CCLK?") && scan("+CCLK: \"%s\"", getdatetime);
+        CSTDEBUG("TAKE the time %d %s \r\n", what, getdatetime);
     }
 
     return -1;

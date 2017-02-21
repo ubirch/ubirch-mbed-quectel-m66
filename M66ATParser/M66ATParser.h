@@ -53,6 +53,8 @@ public:
     */
     bool reset(void);
 
+    bool requestDateTime(void);
+
     /**
     * Connect M66 to the network
     *
