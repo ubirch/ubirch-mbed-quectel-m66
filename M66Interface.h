@@ -49,6 +49,8 @@ public:
      */
     M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug = false);
 
+    int powerUpModem();
+
     int reset(void);
 
     /** Start the interface
@@ -58,6 +60,10 @@ public:
      *
      *  @return         0 on success, negative error code on failure
      */
+    int powerDown(void);
+
+    int isModemAlive(void);
+
     virtual int connect();
 
     /** Start the interface
@@ -86,9 +92,9 @@ public:
      */
     virtual int disconnect();
 
-    /** Get the internally stored IP address
-     *  @return             IP address of the interface or null if not yet connected
-     */
+        /** Get the internally stored IP address
+         *  @return             IP address of the interface or null if not yet connected
+         */
     virtual const char *get_ip_address();
 
     /** Get the internally stored IP address

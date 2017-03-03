@@ -44,6 +44,9 @@ public:
     *
     * @return true only if M66 was started correctly
     */
+    //we need this only to enable power to the modem
+    //check if we need to toggle the POWER pin or jus putting to high is enough
+    // what if the modem  is already powered up
     bool startup(void);
 
     /**
@@ -51,7 +54,23 @@ public:
     *
     * @return true only if M66 resets successfully
     */
+    // play with PWERKEY - (only) to reset the modem, make sure the modem is reset adn alive
     bool reset(void);
+
+    // just check if the modem is alive
+    bool isModemAlive();
+
+    // power down the modem through AT command
+    // use this if done using modem -- to be safer side
+    bool powerDown(void);
+
+    /**
+    * Disconnect M66 from AP
+    *
+    * @return true only if M66 is disconnected successfully
+    */
+    bool disconnect(void);
+
 
     bool requestDateTime(void);
 
@@ -64,13 +83,6 @@ public:
     * @return true only if M66 is connected successfully
     */
     bool connect(const char *apn, const char *userName, const char *passPhrase);
-
-    /**
-    * Disconnect M66 from AP
-    *
-    * @return true only if M66 is disconnected successfully
-    */
-    bool disconnect(void);
 
     /**
      * Get the IP address of M66
@@ -228,9 +240,9 @@ public:
     * @param max the number of bytes to read
     * @return the amount of bytes read
     */
-    size_t read(char *buffer, size_t max);
+    size_t read(char *buffer, size_t max, uint32_t timeout = 5);
 
-    size_t flushRx(char *buffer, size_t max);
+    size_t flushRx(char *buffer, size_t max, uint32_t timeout = 5);
 
 private:
     BufferedSerial _serial;

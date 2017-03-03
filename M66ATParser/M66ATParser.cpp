@@ -31,39 +31,41 @@
 #  define CIODEBUG(...)
 #  define CSTDEBUG(...)                    /*!< Standard debug message (info) */
 #else
-#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
-#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
+//#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
+//#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
+#  define CSTDEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+
+#  define CIODEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
 #endif
 
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
         : _serial(txPin, rxPin, 521), _packets(0), _packets_end(&_packets), _resetPin(rstPin), _powerPin(pwrPin) {
     // TODO make baud rate configurable for Modem code
+    // TODO implement debug printf enable/ disable (bool debug)
     _serial.baud(115200);
 }
 
-//TODO chec if we need to make the QIMUX configurable by passing a variable
 bool M66ATParser::startup(void) {
+
     _powerPin = 1;
 
-    bool success = reset()
-                   && tx("AT+QIMUX=1") && rx("OK");
-
-    // TODO identify the URC for data available
-//    _parser.oob("+RECEIVE: ", this, &M66ATParser::_packet_handler);
-
+    bool success = reset() && tx("AT+QIMUX=1") && rx("OK");
     return success;
+}
+
+bool M66ATParser::powerDown(void){
+    //TODO call this function if connection fails or something happens not as expected
+    return (tx("AT+QPOWD=0") && rx("OK", 10));
+}
+
+bool M66ATParser::isModemAlive(){
+    return (tx("AT") && rx("OK"));
 }
 
 bool M66ATParser::reset(void) {
     char response[4];
 
     CSTDEBUG("M66.reset()\r\n");
-    // switch off the modem
-    _resetPin = 1;
-    wait_ms(200);
-    _resetPin = 0;
-    wait_ms(1000);
-    _resetPin = 1;
 
     bool modemOn = false;
     for (int tries = 0; !modemOn && tries < 3; tries++) {
@@ -75,28 +77,29 @@ bool M66ATParser::reset(void) {
         wait_ms(1000);
         _resetPin = 1;
 
+        if (isModemAlive()) return true;
+
         // TODO check if need delay here to wait for boot
-        for (int i = 0; !modemOn && i < 2; i++) {
-            modemOn = tx("AT") && scan("%2s", &response)
-                      && (!strncmp("AT", response, 2) || !strncmp("OK", response, 2));
+        for (int i = 0; !modemOn && i < 1; i++) {
+            modemOn = (tx("AT") && scan("%2s", &response)
+                      && (!strncmp("AT", response, 2) || !strncmp("OK", response, 2)));
+
+            wait_ms(500);
         }
     }
 
     if (modemOn) {
         // TODO check if the parser ignores any lines it doesn't expect
-//        modemOn = tx("ATE0") && scan("%3s", response)
-//                  &&  (!strncmp("ATE0", response, 3) || !strncmp("OK", response, 2))
-//                  && tx("AT+QIURC=1") && rx("OK");
-        tx("ATE0");
-        rx("OK");
-        tx("AT&W");
-        rx("OK");
-        modemOn = tx("ATE0") && rx("OK")
-                  && tx("ATE0") && rx("OK")
+        modemOn = tx("ATE0") && scan("%3s", response)
+                  &&  (!strncmp("ATE0", response, 3) || !strncmp("OK", response, 2))
                   && tx("AT+QIURC=1") && rx("OK");
+//Do we need to save the setting profile
+//        tx("AT&W");
+//        rx("OK");
     }
     return modemOn;
 }
+
 
 bool M66ATParser::requestDateTime() {
 
@@ -120,22 +123,20 @@ bool M66ATParser::requestDateTime() {
     tdStatus &=  (tx("AT+QNTP=\"rustime02.rus.uni-stuttgart.de\"")
                  && rx("OK"));
 
-    if (tdStatus) return true;
-
-    return false;
+    return tdStatus;
 }
-
-bool cgtt_time = false;
 
 bool M66ATParser::connect(const char *apn, const char *userName, const char *passPhrase) {
     // TODO implement setting the pin number, add it to the contructor arguments
+
     bool connected = false, attached = false;
+    //TODO do we need timeout here
     for (int tries = 0; !connected && !attached && tries < 3; tries++) {
-        // TODO implement timeout
+
         // connecte to the mobile network
         for (int networkTries = 0; !connected && networkTries < 20; networkTries++) {
             int bearer = -1, status = -1;
-            if (tx("AT+CREG?") && scan("+CREG: %d,%d", &bearer, &status) && rx("OK", 15)) {
+            if (tx("AT+CREG?") && scan("+CREG: %d,%d", &bearer, &status) && rx("OK", 10)) {
                 // TODO add an enum of status codes
                 connected = status == 1 || status == 5;
             }
@@ -145,7 +146,7 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
         if (!connected) continue;
 
         // attach GPRS
-        if (!(tx("AT+QIDEACT") && rx("DEACT OK", 5))) continue;
+        if (!(tx("AT+QIDEACT") && rx("DEACT OK"))) continue;
 
         for (int attachTries = 0; !attached && attachTries < 20; attachTries++) {
             attached = tx("AT+CGATT=1") && rx("OK", 10);
@@ -168,8 +169,9 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
 }
 
 bool M66ATParser::disconnect(void) {
-    return tx("AT+QIDEACT") && rx("OK");
+    return (tx("AT+QIDEACT") && rx("DEACT OK"));
 }
+
 
 const char *M66ATParser::getIPAddress(void) {
     if (!(tx("AT+QILOCIP") && scan("%s", _ip_buffer))) {
@@ -227,8 +229,8 @@ bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
 
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
 
-    if(!(tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage))) return false;
-    return true;
+    bool ret = (tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage));
+    return ret;
 }
 
 bool M66ATParser::isConnected(void) {
@@ -250,14 +252,14 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
           && scan("%d, CONNECT OK", &id_resp)))
         return false;
 
-    // TODO AT+QINTP to sync the Local time with NTP
-
     return id == id_resp;
 }
 
 bool M66ATParser::send(int id, const void *data, uint32_t amount) {
+    //socket send timeout is available use it
+
     tx("AT+QISRVC=1");
-    rx("OK", 10);
+    rx("OK");
 
     // TODO if this retry is required?
     //May take a second try if device is busy
@@ -294,7 +296,7 @@ void M66ATParser::_packet_handler(const char *response) {
     packet->len = (uint32_t) amount;
     packet->next = 0;
 
-    const size_t bytesRead = read((char *) (packet + 1), (size_t) amount);
+    const size_t bytesRead = read((char *) (packet + 1), (size_t) amount, 0);
     if (bytesRead != amount) {
         CSTDEBUG("M66 data receive failed: %d != %d\r\n", bytesRead, amount);
         free(packet);
@@ -307,7 +309,15 @@ void M66ATParser::_packet_handler(const char *response) {
 }
 
 int32_t M66ATParser::recv(int id, void *data, uint32_t amount) {
-    while (true) {
+    //TODO the modem goes into endless loop if this func is called and no data is received
+    //TODO see if we need to add a timeout here and how ?
+    Timer timer;
+    timer.start();
+
+    while (timer.read_ms() < _timeout) {
+
+        CIODEBUG("GSM (%02d) <- _timeout'%d' time '%f'\r\n", 2, _timeout, timer.read());
+
         // check if any packets are ready for us
         for (struct packet **p = &_packets; *p; p = &(*p)->next) {
             if ((*p)->id == id) {
@@ -380,8 +390,8 @@ void M66ATParser::attach(Callback<void()> func) {
 bool M66ATParser::tx(const char *pattern, ...) {
     char cmd[512];
 
-    while (flushRx(cmd, sizeof(cmd))) {
-        CIODEBUG("-- GSM (%02d) ->clear buf '%s'\r\n", strlen(cmd), cmd);
+    while (flushRx(cmd, sizeof(cmd), 0)) {
+        CIODEBUG("SM (%02d) ->clear buf '%s'\r\n", strlen(cmd), cmd);
         checkURC(cmd);
     }
 
@@ -402,6 +412,7 @@ bool M66ATParser::tx(const char *pattern, ...) {
 
 int M66ATParser::scan(const char *pattern, ...) {
     char response[512];
+    //TODO use if (readable()) here
     do {
         readline(response, 512 - 1, 10);
     } while (checkURC(response) != -1);
@@ -436,24 +447,23 @@ int M66ATParser::checkURC(const char *response) {
     if (!strncmp("SMS Ready", response, 9)
         || !strncmp("Call Ready", response, 10)
         || !strncmp("+CPIN: READY", response, 12)
-           ) {
+        || !strncmp("+QNTP: 0", response, 8)
+        || !strncmp("+PDP DEACT", response, 10)
+        || !strncmp("NORMAL POWER DOWN ", response, 18)
+
+            ) {
         return 0;
-    }
-    if (!strncmp("+QNTP: 0", response, 8)){
-        char getdatetime[32];
-        bool what = tx("AT+CCLK?") && scan("+CCLK: \"%s\"", getdatetime);
-        CSTDEBUG("TAKE the time %d %s \r\n", what, getdatetime);
     }
 
     return -1;
 }
 
-size_t M66ATParser::read(char *buffer, size_t max) {
+size_t M66ATParser::read(char *buffer, size_t max, uint32_t timeout) {
     Timer timer;
     timer.start();
 
     size_t idx = 0;
-    while (idx < max && timer.read() < 5) {
+    while (idx < max && timer.read() < timeout) {
         if (!_serial.readable()) {
             __WFI();
             continue;
@@ -497,7 +507,7 @@ size_t M66ATParser::readline(char *buffer, size_t max, uint32_t timeout) {
     return idx;
 }
 
-size_t M66ATParser::flushRx(char *buffer, size_t max) {
+size_t M66ATParser::flushRx(char *buffer, size_t max, uint32_t timeout) {
     Timer timer;
     timer.start();
 
@@ -514,7 +524,7 @@ size_t M66ATParser::flushRx(char *buffer, size_t max) {
                 buffer[idx++] = (char) c;
             }
         }
-    } while (idx < max && _serial.readable() && timer.read() < 5);
+    } while (idx < max && _serial.readable() && timer.read() < timeout);
 
     buffer[idx] = 0;
     return idx;

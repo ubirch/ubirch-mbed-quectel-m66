@@ -1,9 +1,9 @@
-/**
+/*
  * Example program establishes TCP/IP connection,
  * and sends a HTTP GET request
- *//*
+ */
 
-
+#if 0
 #include "mbed.h"
 #include "../M66Interface.h"
 
@@ -83,4 +83,4 @@ int main() {
     }
 }
 
-*/
+#endif

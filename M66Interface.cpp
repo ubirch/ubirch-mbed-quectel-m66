@@ -25,10 +25,10 @@
 #include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
 #include "M66Interface.h"
 
-// Various timeouts for different ESP8266 operations
+// Various timeouts for different M66 operations
 #define M66_CONNECT_TIMEOUT 15000
-#define M66_SEND_TIMEOUT    500
-#define M66_RECV_TIMEOUT    0
+#define M66_SEND_TIMEOUT    5000
+#define M66_RECV_TIMEOUT    15000
 #define M66_MISC_TIMEOUT    500
 
 // M66Interface implementation
@@ -41,8 +41,20 @@ M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPi
     _m66.attach(this, &M66Interface::event);
 }
 
-int M66Interface::reset(void) {
+int M66Interface::powerUpModem(){
     return _m66.startup();
+}
+
+int M66Interface::reset(void) {
+    return _m66.reset();
+}
+
+int M66Interface::powerDown(){
+    return _m66.powerDown();
+}
+
+int M66Interface::isModemAlive() {
+    return _m66.isModemAlive();
 }
 
 int M66Interface::connect(const char *apn, const char *userName, const char *passPhrase)

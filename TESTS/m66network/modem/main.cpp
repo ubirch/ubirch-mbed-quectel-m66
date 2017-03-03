@@ -27,11 +27,13 @@ using namespace utest::v1;
 
 M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER, true);
 
+
 void fireUpModem(){
     int ret = modem.powerUpModem();
     TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Failed to power up the modem");
 }
-void connect_modem(){
+
+void modemConnect(){
     int ret;
     ret = modem.connect(CELL_APN, CELL_USER, CELL_PWD);
     TEST_ASSERT_UNLESS_MESSAGE(ret != 0, "Not Connected");
@@ -43,22 +45,22 @@ void modemHTTP() {
     TCPSocket socket;
 
     ret = socket.open(&modem);
-    TEST_ASSERT_MESSAGE(ret == 0, "Open Socket");
+    TEST_ASSERT_MESSAGE(ret == 0, "Socket Open Fail!");
 
     ret = socket.connect("www.arm.com", 80);
     printf("socket connect %d\r\n", ret);
-    TEST_ASSERT_UNLESS_MESSAGE(ret != 0, "Connected fail");
+    TEST_ASSERT_MESSAGE(ret == 0, "Socket Connect Fail!");
 
     char theUrl[] = "GET /HTTP/1.1\r\n\r\n";
     int sendCount = socket.send(theUrl, sizeof(theUrl));
     printf("%d send count\r\n", sendCount);
-    TEST_ASSERT_MESSAGE(sendCount > 0, "Socket send sucess");
+    TEST_ASSERT_MESSAGE(sendCount > 0, "Socket Send Failed!");
 
     // Recieve a simple http response and check if it's not empty
     char rbuffer[64];
     int rcount = socket.recv(rbuffer, sizeof rbuffer);
     printf("%d receive count\r\n", rcount);
-//    TEST_ASSERT_MESSAGE(rcount <= 0, "Socket recv error");
+    TEST_ASSERT_UNLESS_MESSAGE(rcount < 0, "Socket recv error");
     TEST_ASSERT_MESSAGE(rcount > 0, "No data received");
 
     ret = socket.close();
@@ -66,15 +68,11 @@ void modemHTTP() {
 
     ret = modem.disconnect();
     TEST_ASSERT_MESSAGE(ret == 0, "Disconnect ");
-
-    ret = modem.powerDown();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Abnormal PowerDown");
 }
 
 void checkModem(){
     int ret;
-
-    ret = modem.isModem();
+    ret = modem.isModemAlive();
     TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Modem is dead");
 }
 
@@ -96,15 +94,14 @@ Case cases[] = {
         Case("Modem PowerUp-0", fireUpModem, greentea_failure_handler),
         Case("Modem Alive-0", checkModem, greentea_failure_handler),
         Case("Modem Reset-0", resetModem, greentea_failure_handler),
-        Case("Connect-0", connect_modem, greentea_failure_handler),
-//        Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
-        Case("Modem PowerUp-1", fireUpModem, greentea_failure_handler),
+        Case("Connect-0", modemConnect, greentea_failure_handler),
+        Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
         Case("Modem Alive-1", checkModem, greentea_failure_handler),
         Case("Modem Reset-1", resetModem, greentea_failure_handler),
         Case("Modem Reset-2", resetModem, greentea_failure_handler),
         Case("Modem Reset-3", resetModem, greentea_failure_handler),
         Case("Modem Reset-4", resetModem, greentea_failure_handler),
-        Case("Modem PowerDown ", powerDown, greentea_failure_handler),
+        Case("Modem PowerDown", powerDown, greentea_failure_handler),
 };
 
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases) {
