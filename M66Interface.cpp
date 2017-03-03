@@ -22,7 +22,7 @@
  */
 
 #include <string.h>
-#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
+#include <fsl_rtc.h>
 #include "M66Interface.h"
 
 // Various timeouts for different M66 operations

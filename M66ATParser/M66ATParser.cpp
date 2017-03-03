@@ -38,11 +38,11 @@
 #  define CIODEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
 #endif
 
+#define GSM_UART_BAUD_RATE 115200
+
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
         : _serial(txPin, rxPin, 521), _packets(0), _packets_end(&_packets), _resetPin(rstPin), _powerPin(pwrPin) {
-    // TODO make baud rate configurable for Modem code
-    // TODO implement debug printf enable/ disable (bool debug)
-    _serial.baud(115200);
+    _serial.baud(GSM_UART_BAUD_RATE);
 }
 
 bool M66ATParser::startup(void) {
@@ -120,7 +120,7 @@ bool M66ATParser::requestDateTime() {
         wait_ms(1000);
     }
 
-    tdStatus &=  (tx("AT+QNTP=\"rustime02.rus.uni-stuttgart.de\"")
+    tdStatus &=  (tx("AT+QNTP=\"pool.ntp.org\"")
                  && rx("OK"));
 
     return tdStatus;
@@ -228,9 +228,7 @@ bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
 
 
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
-
-    bool ret = (tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage));
-    return ret;
+    return (tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage));
 }
 
 bool M66ATParser::isConnected(void) {
@@ -296,7 +294,7 @@ void M66ATParser::_packet_handler(const char *response) {
     packet->len = (uint32_t) amount;
     packet->next = 0;
 
-    const size_t bytesRead = read((char *) (packet + 1), (size_t) amount, 0);
+    const size_t bytesRead = read((char *) (packet + 1), (size_t) amount, 10);
     if (bytesRead != amount) {
         CSTDEBUG("M66 data receive failed: %d != %d\r\n", bytesRead, amount);
         free(packet);
@@ -390,7 +388,7 @@ void M66ATParser::attach(Callback<void()> func) {
 bool M66ATParser::tx(const char *pattern, ...) {
     char cmd[512];
 
-    while (flushRx(cmd, sizeof(cmd), 0)) {
+    while (flushRx(cmd, sizeof(cmd), 10)) {
         CIODEBUG("SM (%02d) ->clear buf '%s'\r\n", strlen(cmd), cmd);
         checkURC(cmd);
     }
@@ -524,6 +522,7 @@ size_t M66ATParser::flushRx(char *buffer, size_t max, uint32_t timeout) {
                 buffer[idx++] = (char) c;
             }
         }
+        //TODO Do we actually need a timeout here
     } while (idx < max && _serial.readable() && timer.read() < timeout);
 
     buffer[idx] = 0;
