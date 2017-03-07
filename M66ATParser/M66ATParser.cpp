@@ -31,11 +31,11 @@
 #  define CIODEBUG(...)
 #  define CSTDEBUG(...)                    /*!< Standard debug message (info) */
 #else
-//#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
-//#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
-#  define CSTDEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
-
-#  define CIODEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
+#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
+//#  define CSTDEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+//
+//#  define CIODEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
 #endif
 
 #define GSM_UART_BAUD_RATE 115200
@@ -92,7 +92,8 @@ bool M66ATParser::reset(void) {
         // TODO check if the parser ignores any lines it doesn't expect
         modemOn = tx("ATE0") && scan("%3s", response)
                   &&  (!strncmp("ATE0", response, 3) || !strncmp("OK", response, 2))
-                  && tx("AT+QIURC=1") && rx("OK");
+                  && tx("AT+QIURC=1") && rx("OK")
+                  && tx("AT+CMEE=1") && rx("OK");
 //Do we need to save the setting profile
 //        tx("AT&W");
 //        rx("OK");
@@ -105,8 +106,8 @@ bool M66ATParser::requestDateTime() {
 
     bool tdStatus = false;
 
-    tdStatus = (tx("AT+QNITZ=1") && rx("OK")
-                && tx("AT+CTZU=1") && rx("OK")
+    tdStatus = (tx("AT+QNITZ=1") && rx("OK", 10)
+                && tx("AT+CTZU=1") && rx("OK", 10)
                 && tx("AT+CFUN=1") && rx("OK", 10));
 
     bool connected = false;
@@ -157,9 +158,9 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
         // set APN and finish setup
         attached =
                 tx("AT+QIFGCNT=0") && rx("OK") &&
-                tx("AT+QICSGP=1,\"%s\",\"%s\",\"%s\"", apn, userName, passPhrase) && rx("OK") &&
-                tx("AT+QIREGAPP") && rx("OK") &&
-                tx("AT+QIACT") && rx("OK");
+                tx("AT+QICSGP=1,\"%s\",\"%s\",\"%s\"", apn, userName, passPhrase) && rx("OK", 10) &&
+                tx("AT+QIREGAPP") && rx("OK", 10) &&
+                tx("AT+QIACT") && rx("OK", 10);
     }
 
     // Send request to get the local time
@@ -247,8 +248,9 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
 
     if (!(tx("AT+QIOPEN=%d,\"%s\",\"%s\",\"%d\"", id, type, addr, port)
           && rx("OK", 10)
-          && scan("%d, CONNECT OK", &id_resp)))
+          && scan("%d, CONNECT OK", &id_resp))){
         return false;
+    }
 
     return id == id_resp;
 }
@@ -263,13 +265,34 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     //May take a second try if device is busy
     for (unsigned i = 0; i < 2; i++) {
         if (tx("AT+QISEND=%d,%d", id, amount)
-            && rx(">", 10)
-            && _serial.write((char *) data, (int) amount) >= 0
-            && rx("SEND OK", 10)) {
-            return true;
+            && rx(">", 10)){
+
+            char cmd[512];
+
+            while (flushRx(cmd, sizeof(cmd), 10)) {
+                CIODEBUG("SM (%02d) ->clear buf '%s'\r\n", strlen(cmd), cmd);
+                checkURC(cmd);
+            }
+
+            if(_serial.write((char *) data, (int) amount) >= 0
+               && rx("SEND OK", 20)) {
+                return true;
+            }
         }
     }
     return false;
+}
+
+//TODO This command is allowed to establish a TCP/UDP connection only when the state is IP INITIAL or IP
+//        STATUS or IP CLOSE. So it is necessary to process "AT+QIDEACT" or "AT+QICLOSE" before
+//        establishing a TCP/UDP connection with this command when the state is not IP INITIAL or IP
+//        STATUS or IP CLOSE
+//TODO AT+QISTAT=? to query the connection status
+void M66ATParser::queryConnection() {
+    char resp[20];
+    tx("AT+QISTAT");
+    rx("OK");
+    scan("STATE:%s", resp);
 }
 
 void M66ATParser::_packet_handler(const char *response) {
@@ -313,7 +336,7 @@ int32_t M66ATParser::recv(int id, void *data, uint32_t amount) {
     timer.start();
 
     while (timer.read_ms() < _timeout) {
-
+//    while(true){
         CIODEBUG("GSM (%02d) <- _timeout'%d' time '%f'\r\n", 2, _timeout, timer.read());
 
         // check if any packets are ready for us
@@ -389,7 +412,7 @@ bool M66ATParser::tx(const char *pattern, ...) {
     char cmd[512];
 
     while (flushRx(cmd, sizeof(cmd), 10)) {
-        CIODEBUG("SM (%02d) ->clear buf '%s'\r\n", strlen(cmd), cmd);
+        CIODEBUG("GSM (%02d) -> Clear Buf '%s'\r\n", strlen(cmd), cmd);
         checkURC(cmd);
     }
 

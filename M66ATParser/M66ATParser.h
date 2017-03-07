@@ -147,14 +147,16 @@ public:
     */
     bool send(int id, const void *data, uint32_t amount);
 
-    /**
-    * Receives data from an open socket
-    *
-    * @param id id to receive from
-    * @param data placeholder for returned information
-    * @param amount number of bytes to be received
-    * @return the number of bytes received
-    */
+    void queryConnection();
+
+        /**
+        * Receives data from an open socket
+        *
+        * @param id id to receive from
+        * @param data placeholder for returned information
+        * @param amount number of bytes to be received
+        * @return the number of bytes received
+        */
     int32_t recv(int id, void *data, uint32_t amount);
 
     /**

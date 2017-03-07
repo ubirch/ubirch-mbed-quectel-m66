@@ -27,9 +27,9 @@
 
 // Various timeouts for different M66 operations
 #define M66_CONNECT_TIMEOUT 15000
-#define M66_SEND_TIMEOUT    5000
-#define M66_RECV_TIMEOUT    15000
-#define M66_MISC_TIMEOUT    500
+#define M66_SEND_TIMEOUT    15000
+#define M66_RECV_TIMEOUT    40000
+#define M66_MISC_TIMEOUT    40000
 
 // M66Interface implementation
 M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug)
