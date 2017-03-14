@@ -259,10 +259,12 @@ private:
     } *_packets, **_packets_end;
 
     void _packet_handler(const char *response);
+    void _debug_dump(const char *prefix, const uint8_t *b, size_t size);
 
-    uint32_t _timeout;
+    int _timeout;
     char _ip_buffer[16];
     char _imei[16];
+
 };
 
 #endif
