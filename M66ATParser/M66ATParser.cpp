@@ -22,7 +22,7 @@
  */
 
 #include <cctype>
-#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
+#include <fsl_rtc.h>
 #include <string>
 #include "mbed_debug.h"
 #include "M66ATParser.h"
@@ -33,17 +33,17 @@
 #  define CSTDEBUG(...)
 #else
 #  define CIODUMP(buffer, size) _debug_dump("GSM", buffer, size) /*!< Debug and dump a buffer */
-#  define CIODEBUG(...)  printf(__VA_ARGS__)                  /*!< Debug I/O message (AT commands) */
-#  define CSTDEBUG(...)  printf(__VA_ARGS__)                  /*!< Standard debug message (info) */
+#  define CIODEBUG(...)  printf(__VA_ARGS__)                     /*!< Debug I/O message (AT commands) */
+#  define CSTDEBUG(...)  printf(__VA_ARGS__)                     /*!< Standard debug message (info) */
 //#  define CSTDEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
-//
 //#  define CIODEBUG(fmt, ...) printf("%10.10s:%d::" fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);
 #endif
 
 #define GSM_UART_BAUD_RATE 115200
+#define RXTX_BUFFER_SIZE   512
 
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
-    : _serial(txPin, rxPin, 521), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
+    : _serial(txPin, rxPin, RXTX_BUFFER_SIZE), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
     _serial.baud(GSM_UART_BAUD_RATE);
 }
 
@@ -56,7 +56,7 @@ bool M66ATParser::startup(void) {
 }
 
 bool M66ATParser::powerDown(void) {
-    //TODO call this function if connection fails or something happens not as expected
+    //TODO call this function if connection fails or on some unexpected events
     return (tx("AT+QPOWD=0") && rx("OK", 10));
 }
 
@@ -94,9 +94,9 @@ bool M66ATParser::reset(void) {
                   && (!strncmp("ATE0", response, 3) || !strncmp("OK", response, 2))
                   && tx("AT+QIURC=1") && rx("OK")
                   && tx("AT+CMEE=1") && rx("OK");
-//Do we need to save the setting profile
-//        tx("AT&W");
-//        rx("OK");
+/*TODO Do we need to save the setting profile
+        tx("AT&W");
+        rx("OK");*/
     }
     return modemOn;
 }
@@ -163,9 +163,9 @@ bool M66ATParser::connect(const char *apn, const char *userName, const char *pas
     }
 
     // Send request to get the local time
-    requestDateTime();
+    attached &= requestDateTime();
 
-    return connected && attached;
+    return connected && attached ;
 }
 
 bool M66ATParser::disconnect(void) {
@@ -282,11 +282,21 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     return false;
 }
 
-//TODO This command is allowed to establish a TCP/UDP connection only when the state is IP INITIAL or IP
-//        STATUS or IP CLOSE. So it is necessary to process "AT+QIDEACT" or "AT+QICLOSE" before
-//        establishing a TCP/UDP connection with this command when the state is not IP INITIAL or IP
-//        STATUS or IP CLOSE
-//TODO AT+QISTAT=? to query the connection status
+/*TODO Use this commmand to get the IP status before running IP commands(open, send, ..)
+ * getIPAddress() can also be used
+ * A string parameter to indicate the status of the connection
+ * "IP INITIAL"     :: The TCPIP stack is in idle state
+ * "IP START"       :: The TCPIP stack has been registered
+ * "IP CONFIG"      :: It has been start-up to activate GPRS/CSD context
+ * "IP IND"         :: It is activating GPRS/CSD context
+ * "IP GPRSACT"     :: GPRS/CSD context has been activated successfully
+ * "IP STATUS"      :; The local IP address has been gotten by the command AT+QILOCIP
+ * "TCP CONNECTING" :: It is trying to establish a TCP connection
+ * "UDP CONNECTING" :: It is trying to establish a UDP connection
+ * "IP CLOSE"       :: The TCP/UDP connection has been closed
+ * "CONNECT OK"     :: The TCP/UDP connection has been established successfully
+ * "PDP DEACT"      :: GPRS/CSD context was deactivated because of unknown reason
+ */
 void M66ATParser::queryConnection() {
     char resp[20];
     tx("AT+QISTAT");
@@ -327,8 +337,6 @@ void M66ATParser::_packet_handler(const char *response) {
 }
 
 int32_t M66ATParser::recv(int id, void *data, uint32_t amount) {
-    //TODO the modem goes into endless loop if this func is called and no data is received
-    //TODO see if we need to add a timeout here and how ?
     Timer timer;
     timer.start();
 
