@@ -112,14 +112,16 @@ public:
      */
     bool get_location_date(char *lat, char *lon, rtc_datetime_t *datetime);
 
-    /**
-     * Get the Battery status, level and voltage of the device
-     *
-     * @param status battery status
-     * @param level battery level
-     * @param voltage battery voltage
-     * @return return false if
-     */
+    bool queryIP(const char *url, const char *theIP);
+
+        /**
+         * Get the Battery status, level and voltage of the device
+         *
+         * @param status battery status
+         * @param level battery level
+         * @param voltage battery voltage
+         * @return return false if
+         */
     bool getModemBattery(uint8_t *status, int *level, int *voltage);
 
     /** Translates a hostname to an IP address with specific version

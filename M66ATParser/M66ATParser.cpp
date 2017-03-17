@@ -26,6 +26,7 @@
 #include <string>
 #include "mbed_debug.h"
 #include "M66ATParser.h"
+#include "M66Types.h"
 
 #ifdef NCIODEBUG
 #  define CIODUMP(buffer, size)
@@ -227,13 +228,24 @@ bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
     return true;
 }
 
-
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
     return (tx("AT+CBC") && scan("+CBC: %d,%d,%d", status, level, voltage));
 }
 
 bool M66ATParser::isConnected(void) {
     return getIPAddress() != 0;
+}
+
+bool M66ATParser::queryIP(const char *url, const char *theIP) {
+
+    for(int i = 0; i < 3; i++) {
+        if((tx("AT+QIDNSGIP=\"%s\"", url)
+             && rx("OK")
+             && scan("%s", theIP))){
+            if(strncmp(theIP, "ERROR", 5) != 0) return true;
+        } wait(1);
+    }
+    return false;
 }
 
 bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
@@ -244,25 +256,36 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
         return false;
     }
 
-    if (!(tx("AT+QIDNSIP=0") && rx("OK"))) return false;
+    for(int i = 0; i < 3; i++) {
 
-    if (!(tx("AT+QIOPEN=%d,\"%s\",\"%s\",\"%d\"", id, type, addr, port)
-          && rx("OK", 10)
-          && scan("%d, CONNECT OK", &id_resp))) {
-        return false;
+        /* opne a connection only if the QISTATE is IPINITAL, IP_CLOSE, IP STATUS
+         * if it is in any other state then close the connection and / or deactivate context qideact
+         */
+        const int stateRet = queryConnection();
+
+        if (stateRet == IP_INITIAL || stateRet == IP_CLOSE || stateRet == IP_STATUS) {
+
+            if (!(tx("AT+QIDNSIP=0") && rx("OK"))) return false;
+
+            if ((tx("AT+QIOPEN=%d,\"%s\",\"%s\",\"%d\"", id, type, addr, port)
+                 && rx("OK", 10)
+                 && scan("%d, CONNECT OK", &id_resp))) {
+                return id == id_resp;
+            }
+        }
+        /*TODO  AT+QIDEACT and QICLOSE, if open fails, check the application note*/
     }
 
-    return id == id_resp;
+    //TODO return a error code to debug the open fail in a bettwe way
+    return false;
 }
 
 bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     //socket send timeout is available use it
 
-    tx("AT+QISRVC=1");
-    rx("OK");
-
     // TODO if this retry is required?
     //May take a second try if device is busy
+    /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
     for (unsigned i = 0; i < 2; i++) {
         if (tx("AT+QISEND=%d,%d", id, amount) && rx(">", 10)) {
             char cmd[512];
@@ -297,11 +320,27 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
  * "CONNECT OK"     :: The TCP/UDP connection has been established successfully
  * "PDP DEACT"      :: GPRS/CSD context was deactivated because of unknown reason
  */
-void M66ATParser::queryConnection() {
+int M66ATParser::queryConnection() {
     char resp[20];
-    tx("AT+QISTAT");
+    int qstate = -1;
+
+    tx("ATV0");
+    rx("0");
+
+    tx("AT+QISTATE");
+    scan("%d", &qstate);
+    scan("+QISTATE:0, %s", resp);
+    scan("+QISTATE:1, %s", resp);
+    scan("+QISTATE:2, %s", resp);
+    scan("+QISTATE:3, %s", resp);
+    scan("+QISTATE:4, %s", resp);
+    scan("+QISTATE:5, %s", resp);
     rx("OK");
-    scan("STATE:%s", resp);
+
+    tx("ATV1");
+    rx("OK");
+
+    return qstate;
 }
 
 void M66ATParser::_packet_handler(const char *response) {
@@ -390,6 +429,7 @@ bool M66ATParser::close(int id) {
     //May take a second try if device is busy
     for (unsigned i = 0; i < 2; i++) {
         if (tx("AT+QICLOSE=%d", id) && scan("%d, CLOSE OK", &id_resp)) {
+            queryConnection();
             return id == id_resp;
         }
     }

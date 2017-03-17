@@ -120,6 +120,10 @@ bool M66Interface::get_location_date(char *lat, char *lon, rtc_datetime_t *datet
     return _m66.getLocation(lat, lon, datetime);
 }
 
+bool M66Interface::queryIP(const char *url, const char *theIP){
+    return _m66.queryIP(url, theIP);
+}
+
 bool M66Interface::getModemBattery(uint8_t *status, int *level, int *voltage){
     return _m66.modem_battery(status, level, voltage);
 }
