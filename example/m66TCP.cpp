@@ -38,7 +38,7 @@ void sendData(void) {
         socket.set_timeout(0);
         bool ipret = modem.queryIP(theUrl, theIP);
 
-        if(ipret) {
+        if (ipret) {
             // http://api.demo.dev.ubirch.com:8080/api/avatarService/v1/device/update
             ret = socket.connect(theIP, 80);
 
@@ -48,7 +48,7 @@ void sendData(void) {
                 char *message = (char *) malloc((size_t) (message_size + 1));
                 sprintf(message, message_template, imeiHash);
 
-                int r = socket.send(tempMessage, (nsapi_size_t)strlen(tempMessage));
+                int r = socket.send(tempMessage, (nsapi_size_t) strlen(tempMessage));
                 if (r > 0) {
                     // Recieve a simple http response and print out the response line
                     char buffer[64];
@@ -69,10 +69,15 @@ void sendData(void) {
             // Close the socket to return its memory and bring down the network interface
             socket.close();
             failCount = 0;
-        }
-        else {
+        } else {
             failCount++;
-            Thread::wait(10*1000);
+            if (failCount == 4) {
+                for(int j = 0; j < 2; j++) {
+                    const int r = modem.connect(CELL_APN, CELL_USER, CELL_PWD);
+                    if(r == NSAPI_ERROR_OK) break;
+                }
+                return;
+            }
         }
         Thread::wait(60 * 1000);
     }

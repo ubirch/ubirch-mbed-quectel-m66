@@ -58,7 +58,7 @@ bool M66ATParser::startup(void) {
 
 bool M66ATParser::powerDown(void) {
     //TODO call this function if connection fails or on some unexpected events
-    return (tx("AT+QPOWD=0") && rx("OK", 10));
+    return (tx("AT+QPOWD=0") && rx("OK", 20));
 }
 
 bool M66ATParser::isModemAlive() {
@@ -335,7 +335,7 @@ int M66ATParser::queryConnection() {
     scan("+QISTATE:3, %s", resp);
     scan("+QISTATE:4, %s", resp);
     scan("+QISTATE:5, %s", resp);
-    rx("OK");
+    rx("0");
 
     tx("ATV1");
     rx("OK");
@@ -429,7 +429,6 @@ bool M66ATParser::close(int id) {
     //May take a second try if device is busy
     for (unsigned i = 0; i < 2; i++) {
         if (tx("AT+QICLOSE=%d", id) && scan("%d, CLOSE OK", &id_resp)) {
-            queryConnection();
             return id == id_resp;
         }
     }

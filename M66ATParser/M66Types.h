@@ -14,7 +14,7 @@
 //};
 
 enum QISTATUS{
-    IP_INITIAL = 0,       //0
+    IP_INITIAL = 0,   //0
     IP_START,         //1
     IP_CONFIG,        //2
     IP_IND,           //3
