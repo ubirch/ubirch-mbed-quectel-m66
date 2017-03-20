@@ -126,19 +126,22 @@ public:
     */
     bool isConnected(void);
 
-    /**
-    * Open a socketed connection
-    *
-    * @param type the type of socket to open "UDP" or "TCP"
-    * @param id id to give the new socket, valid 0-4
-    * @param port port to open connection with
-    * @param addr the IP address of the destination
-    * @return true only if socket opened successfully
-    */
+    bool queryIP(const char *url, const char *theIP);
+
+        /**
+        * Open a socketed connection
+        *
+        * @param type the type of socket to open "UDP" or "TCP"
+        * @param id id to give the new socket, valid 0-4
+        * @param port port to open connection with
+        * @param addr the IP address of the destination
+        * @return true only if socket opened successfully
+        */
     bool open(const char *type, int id, const char *addr, int port);
 
     /**
     * Sends data to an open socket
+    * 1046 Bytes can be sent each time
     *
     * @param id id of socket to send to
     * @param data data to be sent
@@ -147,7 +150,7 @@ public:
     */
     bool send(int id, const void *data, uint32_t amount);
 
-    void queryConnection();
+    int queryConnection();
 
         /**
         * Receives data from an open socket
