@@ -283,6 +283,9 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
 bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     //socket send timeout is available use it
 
+    tx("AT+QISRVC=1");		
+    rx("OK");
+    
     // TODO if this retry is required?
     //May take a second try if device is busy
     /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
