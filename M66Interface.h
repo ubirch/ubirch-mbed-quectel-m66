@@ -28,8 +28,8 @@
 #ifndef M66_INTERFACE_H
 #define M66_INTERFACE_H
 
-#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
-#include"mbed.h"
+#include "mbed.h"
+#include "fsl_rtc.h"
 #include "M66ATParser.h"
 
 #define M66_SOCKET_COUNT 5
