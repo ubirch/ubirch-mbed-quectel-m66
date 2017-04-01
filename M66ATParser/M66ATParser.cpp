@@ -46,6 +46,7 @@
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
     : _serial(txPin, rxPin, RXTX_BUFFER_SIZE), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
     _serial.baud(GSM_UART_BAUD_RATE);
+    _powerPin = 0;
 }
 
 bool M66ATParser::startup(void) {
@@ -58,7 +59,11 @@ bool M66ATParser::startup(void) {
 
 bool M66ATParser::powerDown(void) {
     //TODO call this function if connection fails or on some unexpected events
-    return (tx("AT+QPOWD=0") && rx("OK", 20));
+    bool normalPowerDown = tx("AT+QPOWD=1") && rx("NORMAL POWER DOWN", 20);
+
+    _powerPin =  0;
+
+    return normalPowerDown;
 }
 
 bool M66ATParser::isModemAlive() {
@@ -283,9 +288,9 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
 bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     //socket send timeout is available use it
 
-    tx("AT+QISRVC=1");		
+    tx("AT+QISRVC=1");
     rx("OK");
-    
+
     // TODO if this retry is required?
     //May take a second try if device is busy
     /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
