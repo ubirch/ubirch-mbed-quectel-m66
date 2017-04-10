@@ -50,7 +50,9 @@ M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName p
 }
 
 bool M66ATParser::startup(void) {
-
+    //When the board comes nack from deep sleep mode make sure the modem is restarted
+    _powerPin = 0;
+    wait_ms(200);
     _powerPin = 1;
 
     bool success = reset() && tx("AT+QIMUX=1") && rx("OK");
