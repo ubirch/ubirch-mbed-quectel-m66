@@ -28,6 +28,23 @@
 #include "M66ATParser.h"
 #include "M66Types.h"
 
+
+void m66dbg_dump(const char *prefix, const uint8_t *b, size_t size) {
+    for (int i = 0; i < size; i += 16) {
+        if (prefix && strlen(prefix) > 0) printf("%s %06x: ", prefix, i);
+        for (int j = 0; j < 16; j++) {
+            if ((i + j) < size) printf("%02x", b[i + j]); else printf("  ");
+            if ((j + 1) % 2 == 0) putchar(' ');
+        }
+        putchar(' ');
+        for (int j = 0; j < 16 && (i + j) < size; j++) {
+            putchar(b[i + j] >= 0x20 && b[i + j] <= 0x7E ? b[i + j] : '.');
+        }
+        printf("\r\n");
+        wait_ms(50);
+    }
+}
+
 #ifdef NCIODEBUG
 #  define CIODUMP(buffer, size)
 #  define CIODEBUG(...)
@@ -128,10 +145,9 @@ bool M66ATParser::requestDateTime() {
         // TODO check if we need to use thread wait
         wait_ms(1000);
     }
-
     tdStatus &= (tx("AT+QNTP=\"pool.ntp.org\"") && rx("OK"));
 
-    return tdStatus;
+    return tdStatus && connected;
 }
 
 bool M66ATParser::connect(const char *apn, const char *userName, const char *passPhrase) {
