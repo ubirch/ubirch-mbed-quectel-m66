@@ -110,7 +110,7 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lat, char *lon, rtc_datetime_t *datetime);
+    bool get_location_date(char *lon, char *lat, rtc_datetime_t *datetime);
 
     bool queryIP(const char *url, const char *theIP);
 

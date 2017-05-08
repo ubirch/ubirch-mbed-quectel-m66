@@ -212,23 +212,23 @@ const char *M66ATParser::getIMEI() {
     return _imei;
 }
 
-bool M66ATParser::getLocation(char *lat, char *lon, rtc_datetime_t *datetime) {
+bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime) {
 
     char response[32] = "";
 
     string responseLon;
     string responseLat;
 
-    // get location
+    // get location - +QCELLLOC: Longitude, Latitude
     if ((tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response))) {
 
         string str(response);
         size_t found = str.find(",");
 
-        responseLat = str.substr(0, found - 1);
-        responseLon = str.substr(found + 1);
-        strcpy(lat, responseLat.c_str());
+        responseLon = str.substr(0, found - 1);
+        responseLat = str.substr(found + 1);
         strcpy(lon, responseLon.c_str());
+        strcpy(lat, responseLat.c_str());
     }
 
     // get network time

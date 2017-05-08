@@ -116,8 +116,8 @@ const char *M66Interface::get_imei(){
     return _m66.getIMEI();
 }
 
-bool M66Interface::get_location_date(char *lat, char *lon, rtc_datetime_t *datetime) {
-    return _m66.getLocation(lat, lon, datetime);
+bool M66Interface::get_location_date(char *lon, char *lat, rtc_datetime_t *datetime) {
+    return _m66.getLocation(lon, lat, datetime);
 }
 
 bool M66Interface::queryIP(const char *url, const char *theIP){
