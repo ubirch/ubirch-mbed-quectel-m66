@@ -37,8 +37,7 @@
 /** M66Interface class
  *  Implementation of the NetworkStack for the M66 GSM Modem
  */
-class M66Interface : public NetworkStack, public CellularInterface
-{
+class M66Interface : public NetworkStack, public CellularInterface {
 public:
     /** M66Interface lifetime
      * @param tx        TX pin
@@ -63,6 +62,8 @@ public:
     int powerDown(void);
 
     int isModemAlive(void);
+
+    int checkGPRS();
 
     virtual int connect();
 
@@ -92,9 +93,9 @@ public:
      */
     virtual int disconnect();
 
-        /** Get the internally stored IP address
-         *  @return             IP address of the interface or null if not yet connected
-         */
+    /** Get the internally stored IP address
+     *  @return             IP address of the interface or null if not yet connected
+     */
     virtual const char *get_ip_address();
 
     /** Get the internally stored IP address
@@ -110,18 +111,18 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lon, char *lat, rtc_datetime_t *datetime);
+    bool get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
 
     bool queryIP(const char *url, const char *theIP);
 
-        /**
-         * Get the Battery status, level and voltage of the device
-         *
-         * @param status battery status
-         * @param level battery level
-         * @param voltage battery voltage
-         * @return return false if
-         */
+    /**
+     * Get the Battery status, level and voltage of the device
+     *
+     * @param status battery status
+     * @param level battery level
+     * @param voltage battery voltage
+     * @return return false if
+     */
     bool getModemBattery(uint8_t *status, int *level, int *voltage);
 
     /** Translates a hostname to an IP address with specific version
@@ -250,8 +251,7 @@ protected:
      *
      *  @return The underlying NetworkStack object
      */
-    virtual NetworkStack *get_stack()
-    {
+    virtual NetworkStack *get_stack() {
         return this;
     }
 
@@ -267,6 +267,7 @@ private:
 
     struct {
         void (*callback)(void *);
+
         void *data;
     } _cbs[M66_SOCKET_COUNT];
 };

@@ -60,7 +60,9 @@ public:
     // just check if the modem is alive
     bool isModemAlive();
 
-    // power down the modem through AT command
+    int checkGPRS();
+
+        // power down the modem through AT command
     // use this if done using modem -- to be safer side
     bool powerDown(void);
 
@@ -106,7 +108,7 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool getLocation(char *lon, char *lat, rtc_datetime_t *datetime);
+    bool getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
 
 
     /**

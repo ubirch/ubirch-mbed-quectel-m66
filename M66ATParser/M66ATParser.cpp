@@ -28,23 +28,6 @@
 #include "M66ATParser.h"
 #include "M66Types.h"
 
-
-void m66dbg_dump(const char *prefix, const uint8_t *b, size_t size) {
-    for (int i = 0; i < size; i += 16) {
-        if (prefix && strlen(prefix) > 0) printf("%s %06x: ", prefix, i);
-        for (int j = 0; j < 16; j++) {
-            if ((i + j) < size) printf("%02x", b[i + j]); else printf("  ");
-            if ((j + 1) % 2 == 0) putchar(' ');
-        }
-        putchar(' ');
-        for (int j = 0; j < 16 && (i + j) < size; j++) {
-            putchar(b[i + j] >= 0x20 && b[i + j] <= 0x7E ? b[i + j] : '.');
-        }
-        printf("\r\n");
-        wait_ms(50);
-    }
-}
-
 #ifdef NCIODEBUG
 #  define CIODUMP(buffer, size)
 #  define CIODEBUG(...)
@@ -71,6 +54,7 @@ bool M66ATParser::startup(void) {
     _powerPin = 0;
     wait_ms(200);
     _powerPin = 1;
+    wait_ms(200);
 
     bool success = reset() && tx("AT+QIMUX=1") && rx("OK");
     return success;
@@ -87,6 +71,14 @@ bool M66ATParser::powerDown(void) {
 
 bool M66ATParser::isModemAlive() {
     return (tx("AT") && rx("OK"));
+}
+
+int M66ATParser::checkGPRS() {
+    int val = -1;
+    if (!isModemAlive())
+        return false;
+    int ret = (tx("AT+CGATT?") && scan("+CGATT: %d", &val) && rx("OK", 10));
+    return val;
 }
 
 bool M66ATParser::reset(void) {
@@ -212,7 +204,7 @@ const char *M66ATParser::getIMEI() {
     return _imei;
 }
 
-bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime) {
+bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
 
     char response[32] = "";
 
@@ -220,23 +212,23 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime) {
     string responseLat;
 
     // get location - +QCELLLOC: Longitude, Latitude
-    if ((tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response))) {
+    if (!(tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response)))
+        return false;
 
-        string str(response);
-        size_t found = str.find(",");
+    string str(response);
+    size_t found = str.find(",");
+    if (found <= 0) return false;
 
-        responseLon = str.substr(0, found - 1);
-        responseLat = str.substr(found + 1);
-        strcpy(lon, responseLon.c_str());
-        strcpy(lat, responseLat.c_str());
-    }
+    responseLon = str.substr(0, found - 1);
+    responseLat = str.substr(found + 1);
+    strcpy(lon, responseLon.c_str());
+    strcpy(lat, responseLat.c_str());
 
     // get network time
-    int timezone;
     if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
                                     &datetime->year, &datetime->month, &datetime->day,
                                     &datetime->hour, &datetime->minute, &datetime->second,
-                                    &timezone)))) {
+                                    &zone)))) {
         CSTDEBUG("M66 [--] !! no time received\r\n");
         return false;
     }
@@ -246,8 +238,7 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime) {
     CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
              datetime->year, datetime->month, datetime->day,
              datetime->hour, datetime->minute, datetime->second,
-             timezone);
-
+             *zone);
     return true;
 }
 
@@ -304,30 +295,77 @@ bool M66ATParser::open(const char *type, int id, const char *addr, int port) {
 }
 
 bool M66ATParser::send(int id, const void *data, uint32_t amount) {
-    //socket send timeout is available use it
 
-    tx("AT+QISRVC=1");
-    rx("OK");
+    if (!(tx("AT+QISRVC=1") && rx("OK"))) return false;
 
-    // TODO if this retry is required?
-    //May take a second try if device is busy
-    /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
-    for (unsigned i = 0; i < 2; i++) {
-        if (tx("AT+QISEND=%d,%d", id, amount) && rx(">", 10)) {
-            char cmd[512];
 
-            while (flushRx(cmd, sizeof(cmd), 10)) {
-                CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
-                checkURC(cmd);
+    uint32_t MAX_SEND_BYTES = 1400;
+    char *tempData = (char *)(malloc((size_t) amount + 1));
+    memset(tempData, 0, amount);
+    strncpy(tempData, (char *)data, amount);
+
+    if (amount > MAX_SEND_BYTES) {
+        uint32_t currentPcktSize = 0;
+        uint32_t lastPcktSize = 0;
+        uint32_t remAmount = amount;
+        for (int j = 0; j <= amount / MAX_SEND_BYTES; j++) {
+            if (remAmount >= MAX_SEND_BYTES) {
+                if (remAmount % MAX_SEND_BYTES > 0) {
+                    currentPcktSize = MAX_SEND_BYTES;
+                    remAmount -= MAX_SEND_BYTES;
+                } else {
+                    currentPcktSize = MAX_SEND_BYTES;
+                    remAmount -= MAX_SEND_BYTES;
+                }
+            } else {
+                currentPcktSize = remAmount % MAX_SEND_BYTES;
+                remAmount -= currentPcktSize;
             }
 
-            CIODUMP((uint8_t *) data, amount);
-            if (_serial.write((char *) data, (int) amount) >= 0 && rx("SEND OK", 20)) {
-                return true;
+            char *sendPckt = (char *) malloc((size_t) currentPcktSize + 1);
+            memset(sendPckt, 0, (size_t) currentPcktSize);
+            strncpy(sendPckt, tempData + lastPcktSize, (size_t) currentPcktSize);
+            lastPcktSize += currentPcktSize;
+
+            // TODO if this retry is required?
+            //May take a second try if device is busy
+            /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
+            for (int i = 0; i < 2; i++) {
+                if (tx("AT+QISEND=%d,%d", id, currentPcktSize) && rx(">", 10)) {
+                    char cmd[512];
+                    while (flushRx(cmd, sizeof(cmd), 10)) {
+                        CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
+                        checkURC(cmd);
+                    }
+                    CIODUMP((uint8_t *) sendPckt, (size_t) currentPcktSize);
+                    if (_serial.write((char *) sendPckt, (size_t) currentPcktSize) >= 0 && rx("SEND OK", 20)) {
+                        break;
+                    } else return false;
+                }
+            } // for::i
+            free(sendPckt);
+        } //for::j
+        return true;
+    } else {
+        // TODO if this retry is required?
+        //May take a second try if device is busy
+        /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
+        for (int ij = 0; ij < 2; ij++) {
+            if (tx("AT+QISEND=%d,%d", id, amount) && rx(">", 10)) {
+                char cmd[512];
+
+                while (flushRx(cmd, sizeof(cmd), 10)) {
+                    CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
+                    checkURC(cmd);
+                }
+
+                CIODUMP((uint8_t *) data, amount);
+                if (_serial.write((char *) data, (int) amount) >= 0 && rx("SEND OK", 20)) {
+                    return true;
+                }
             }
         }
     }
-
     return false;
 }
 
@@ -350,11 +388,10 @@ int M66ATParser::queryConnection() {
     char resp[20];
     int qstate = -1;
 
-    tx("ATV0");
-    rx("0");
+    if (!(tx("ATV0") && rx("0"))) return false;
 
-    tx("AT+QISTATE");
-    scan("%d", &qstate);
+    bool ret = (tx("AT+QISTATE") && scan("%d", &qstate));
+
     scan("+QISTATE:0, %s", resp);
     scan("+QISTATE:1, %s", resp);
     scan("+QISTATE:2, %s", resp);
@@ -363,8 +400,9 @@ int M66ATParser::queryConnection() {
     scan("+QISTATE:5, %s", resp);
     rx("0");
 
-    tx("ATV1");
-    rx("OK");
+    ret &= (tx("ATV1") && rx("OK"));
+
+    if (!ret) return false;
 
     return qstate;
 }
