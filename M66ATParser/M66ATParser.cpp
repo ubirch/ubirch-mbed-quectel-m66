@@ -300,71 +300,33 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
 
     if (!(tx("AT+QISRVC=1") && rx("OK"))) return false;
 
-    if (amount > MAX_SEND_BYTES) {
+    char *tempData = (char *) data;
+    int remAmount = amount;
+    int sendDataSize = 0;
+    while (remAmount > 0) {
+        sendDataSize = remAmount < MAX_SEND_BYTES ?  remAmount: MAX_SEND_BYTES;
+        remAmount -= sendDataSize;
 
-        uint32_t currentPcktSize = 0;
-        uint32_t lastPcktSize = 0;
-        uint32_t remAmount = amount;
-
-        for (int j = 0; j <= amount / MAX_SEND_BYTES; j++) {
-            if (remAmount >= MAX_SEND_BYTES) {
-                if (remAmount % MAX_SEND_BYTES > 0) {
-                    currentPcktSize = MAX_SEND_BYTES;
-                    remAmount -= MAX_SEND_BYTES;
-                } else {
-                    currentPcktSize = MAX_SEND_BYTES;
-                    remAmount -= MAX_SEND_BYTES;
-                }
-            } else {
-                currentPcktSize = remAmount % MAX_SEND_BYTES;
-                remAmount -= currentPcktSize;
-            }
-
-            char *sendPckt = (char *) malloc((size_t) currentPcktSize + 1);
-            memset(sendPckt, 0, (size_t) currentPcktSize);
-            strncpy(sendPckt, (char *)data + lastPcktSize, (size_t) currentPcktSize);
-            lastPcktSize += currentPcktSize;
-
-            // TODO if this retry is required?
-            // TODO May take a second try if device is busy
-            /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
-            for (int i = 0; i < 2; i++) {
-                if (tx("AT+QISEND=%d,%d", id, currentPcktSize) && rx(">", 10)) {
-                    char cmd[512];
-                    while (flushRx(cmd, sizeof(cmd), 10)) {
-                        CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
-                        checkURC(cmd);
-                    }
-                    CIODUMP((uint8_t *) sendPckt, (size_t) currentPcktSize);
-                    if (_serial.write((char *) sendPckt, (size_t) currentPcktSize) >= 0 && rx("SEND OK", 20)) {
-                        break;
-                    } else return false;
-                } //if: AT+QISEND
-            } // for::i
-            free(sendPckt);
-        } //for::j
-        return true;
-    } else {
-        // TODO if this retry is required?
-        //May take a second try if device is busy
-        /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
-        for (int ij = 0; ij < 2; ij++) {
-            if (tx("AT+QISEND=%d,%d", id, amount) && rx(">", 10)) {
+        /* TODO if this retry is required?
+         * TODO May take a second try if device is busy
+         * TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote
+         */
+        for (int i = 0; i < 2; i++) {
+            if (tx("AT+QISEND=%d,%d", id, sendDataSize) && rx(">", 10)) {
                 char cmd[512];
-
                 while (flushRx(cmd, sizeof(cmd), 10)) {
                     CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
                     checkURC(cmd);
                 }
-
-                CIODUMP((uint8_t *) data, amount);
-                if (_serial.write((char *) data, (int) amount) >= 0 && rx("SEND OK", 20)) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+                CIODUMP((uint8_t *) tempData, (size_t)sendDataSize);
+                if (_serial.write(tempData, (size_t)sendDataSize) >= 0 && rx("SEND OK", 20)) {
+                    break;
+                } else return false;
+            } //if: AT+QISEND
+        } //for:i
+        tempData += sendDataSize;
+    }//while
+    return true;
 }
 
 /*TODO Use this commmand to get the IP status before running IP commands(open, send, ..)
