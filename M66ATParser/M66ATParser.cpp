@@ -42,6 +42,8 @@
 
 #define GSM_UART_BAUD_RATE 115200
 #define RXTX_BUFFER_SIZE   512
+#define MAX_SEND_BYTES     1400
+
 
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
     : _serial(txPin, rxPin, RXTX_BUFFER_SIZE), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
@@ -298,16 +300,12 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
 
     if (!(tx("AT+QISRVC=1") && rx("OK"))) return false;
 
-
-    uint32_t MAX_SEND_BYTES = 1400;
-    char *tempData = (char *)(malloc((size_t) amount + 1));
-    memset(tempData, 0, amount);
-    strncpy(tempData, (char *)data, amount);
-
     if (amount > MAX_SEND_BYTES) {
+
         uint32_t currentPcktSize = 0;
         uint32_t lastPcktSize = 0;
         uint32_t remAmount = amount;
+
         for (int j = 0; j <= amount / MAX_SEND_BYTES; j++) {
             if (remAmount >= MAX_SEND_BYTES) {
                 if (remAmount % MAX_SEND_BYTES > 0) {
@@ -324,11 +322,11 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
 
             char *sendPckt = (char *) malloc((size_t) currentPcktSize + 1);
             memset(sendPckt, 0, (size_t) currentPcktSize);
-            strncpy(sendPckt, tempData + lastPcktSize, (size_t) currentPcktSize);
+            strncpy(sendPckt, (char *)data + lastPcktSize, (size_t) currentPcktSize);
             lastPcktSize += currentPcktSize;
 
             // TODO if this retry is required?
-            //May take a second try if device is busy
+            // TODO May take a second try if device is busy
             /* TODO use QISACK after you receive SEND OK, to check if whether the data has been sent to the remote*/
             for (int i = 0; i < 2; i++) {
                 if (tx("AT+QISEND=%d,%d", id, currentPcktSize) && rx(">", 10)) {
@@ -341,7 +339,7 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
                     if (_serial.write((char *) sendPckt, (size_t) currentPcktSize) >= 0 && rx("SEND OK", 20)) {
                         break;
                     } else return false;
-                }
+                } //if: AT+QISEND
             } // for::i
             free(sendPckt);
         } //for::j

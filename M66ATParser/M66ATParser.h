@@ -37,6 +37,13 @@
  */
 class M66ATParser {
 public:
+    /** M66ATParser lifetime
+     * @param tx        TX pin
+     * @param rx        RX pin
+     * @param rstPin    Reset pin
+     * @param pwrPin    PowerKey pin
+     * @param debug     Enable debugging
+     */
     M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug = false);
 
     /**
@@ -44,26 +51,35 @@ public:
     *
     * @return true only if M66 was started correctly
     */
-    //we need this only to enable power to the modem
-    //check if we need to toggle the POWER pin or jus putting to high is enough
-    // what if the modem  is already powered up
     bool startup(void);
 
     /**
     * Reset M66
     *
     * @return true only if M66 resets successfully
+    * play with PWERKEY - (only) to reset the modem, make sure the modem is reset and alive
     */
-    // play with PWERKEY - (only) to reset the modem, make sure the modem is reset adn alive
     bool reset(void);
 
-    // just check if the modem is alive
+    /**
+    * Check if the Modem is poweredup and running
+    *
+    * @return true only if M66 OK's to AT cmd
+    */
     bool isModemAlive();
 
+    /**
+    * Check the modem GPRS status
+    *
+    * @return 0: GPRS is detached; 1: GPRS is attached
+    */
     int checkGPRS();
 
-        // power down the modem through AT command
-    // use this if done using modem -- to be safer side
+    /**
+    * Power down the modem using AT cmd and bring the power pin to low
+    *
+    * @return true if AT-powerDown was OK
+    */
     bool powerDown(void);
 
     /**
@@ -73,7 +89,11 @@ public:
     */
     bool disconnect(void);
 
-
+    /**
+    * Set up the NTP server and enable the M66 clock functions
+    *
+    * @return true if AT cmd were sucessful
+    */
     bool requestDateTime(void);
 
     /**
@@ -128,17 +148,22 @@ public:
     */
     bool isConnected(void);
 
+    /**
+    * Get the IP of the host
+    *
+    * @return true only if the chip has an IP address
+    */
     bool queryIP(const char *url, const char *theIP);
 
-        /**
-        * Open a socketed connection
-        *
-        * @param type the type of socket to open "UDP" or "TCP"
-        * @param id id to give the new socket, valid 0-4
-        * @param port port to open connection with
-        * @param addr the IP address of the destination
-        * @return true only if socket opened successfully
-        */
+    /**
+    * Open a socketed connection
+    *
+    * @param type the type of socket to open "UDP" or "TCP"
+    * @param id id to give the new socket, valid 0-4
+    * @param port port to open connection with
+    * @param addr the IP address of the destination
+    * @return true only if socket opened successfully
+    */
     bool open(const char *type, int id, const char *addr, int port);
 
     /**
@@ -152,16 +177,21 @@ public:
     */
     bool send(int id, const void *data, uint32_t amount);
 
+    /**
+    * Get the M66 connection status
+    *
+    * @return status
+    */
     int queryConnection();
 
-        /**
-        * Receives data from an open socket
-        *
-        * @param id id to receive from
-        * @param data placeholder for returned information
-        * @param amount number of bytes to be received
-        * @return the number of bytes received
-        */
+    /**
+    * Receives data from an open socket
+    *
+    * @param id id to receive from
+    * @param data placeholder for returned information
+    * @param amount number of bytes to be received
+    * @return the number of bytes received
+    */
     int32_t recv(int id, void *data, uint32_t amount);
 
     /**
@@ -264,6 +294,7 @@ private:
     } *_packets, **_packets_end;
 
     void _packet_handler(const char *response);
+
     void _debug_dump(const char *prefix, const uint8_t *b, size_t size);
 
     int _timeout;

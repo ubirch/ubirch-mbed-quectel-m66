@@ -48,23 +48,46 @@ public:
      */
     M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug = false);
 
+    /**
+    * Startup the M66
+    *
+    * @return true only if M66 was started correctly
+    */
     int powerUpModem();
 
+    /**
+    * Reset M66
+    *
+    * @return true only if M66 resets successfully
+    * play with PWERKEY - (only) to reset the modem, make sure the modem is reset and alive
+    */
     int reset(void);
 
-    /** Start the interface
-     *
-     *  Attempts to connect to a GSM network. Requires apn, username and passphrase to be set.
-     *  If passphrase is invalid, NSAPI_ERROR_AUTH_ERROR is returned.
-     *
-     *  @return         0 on success, negative error code on failure
-     */
+    /**
+    * Power down the modem using AT cmd and bring the power pin to low
+    *
+    * @return true if AT-powerDown was OK
+    */
     int powerDown(void);
 
+    /**
+    * Check if the Modem is poweredup and running
+    *
+    * @return true only if M66 OK's to AT cmd
+    */
     int isModemAlive(void);
 
+    /**
+    * Check the modem GPRS status
+    *
+    * @return 0: GPRS is detached; 1: GPRS is attached
+    */
     int checkGPRS();
 
+    /**
+    * Connect M66 to the network
+    *
+    */
     virtual int connect();
 
     /** Start the interface
