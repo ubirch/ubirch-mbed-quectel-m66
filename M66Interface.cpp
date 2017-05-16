@@ -94,7 +94,7 @@ int M66Interface::connect()
         return NSAPI_ERROR_NO_ADDRESS;
     }
 
-    if(!set_imei()){
+    if(set_imei()){
         return NSAPI_ERROR_DEVICE_ERROR;
     }
     return NSAPI_ERROR_OK;
