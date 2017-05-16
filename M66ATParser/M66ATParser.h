@@ -118,7 +118,7 @@ public:
      *
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    const char *getIMEI();
+    bool getIMEI(char *getimei);
 
     /**
      * Get the Latitude, Longitude, Date and Time of the device

@@ -121,9 +121,14 @@ public:
      */
     virtual const char *get_ip_address();
 
-    /** Get the internally stored IP address
-     *  @return             IP address of the interface or null if not yet connected
+    /** Set the IMEI
+     *  @return             true if IMEI is set sucessfully
      */
+    int set_imei();
+
+   /** Get the internally stored IMEI
+    *  @return             IMEI of the Device or null if not yet Powered on
+    */
     const char *get_imei();
 
     /**
@@ -285,6 +290,7 @@ private:
     char _apn[10];
     char _userName[10];
     char _passPhrase[10];
+    char _imei[16];
 
     void event();
 

@@ -80,7 +80,7 @@ int M66ATParser::checkGPRS() {
     if (!isModemAlive())
         return false;
     int ret = (tx("AT+CGATT?") && scan("+CGATT: %d", &val) && rx("OK", 10));
-    return val;
+    return val && ret;
 }
 
 bool M66ATParser::reset(void) {
@@ -199,11 +199,12 @@ const char *M66ATParser::getIPAddress(void) {
     return _ip_buffer;
 }
 
-const char *M66ATParser::getIMEI() {
+bool M66ATParser::getIMEI(char *getimei) {
     if (!(tx("AT+GSN") && scan("%s", _imei))) {
         return 0;
     }
-    return _imei;
+    strncpy(getimei, _imei, 16);
+    return 1;
 }
 
 bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
@@ -301,11 +302,11 @@ bool M66ATParser::send(int id, const void *data, uint32_t amount) {
     if (!(tx("AT+QISRVC=1") && rx("OK"))) return false;
 
     char *tempData = (char *) data;
-    int remAmount = amount;
+    uint32_t remainingAmount = amount;
     int sendDataSize = 0;
-    while (remAmount > 0) {
-        sendDataSize = remAmount < MAX_SEND_BYTES ?  remAmount: MAX_SEND_BYTES;
-        remAmount -= sendDataSize;
+    while (remainingAmount > 0) {
+        sendDataSize = remainingAmount < MAX_SEND_BYTES ?  remainingAmount: MAX_SEND_BYTES;
+        remainingAmount -= sendDataSize;
 
         /* TODO if this retry is required?
          * TODO May take a second try if device is busy

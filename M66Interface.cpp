@@ -61,6 +61,17 @@ int M66Interface::checkGPRS() {
     return _m66.checkGPRS();
 }
 
+int M66Interface::set_imei(){
+    if(!_m66.getIMEI(_imei)){
+        return NSAPI_ERROR_DEVICE_ERROR;
+    }
+    return NSAPI_ERROR_OK;
+}
+
+const char *M66Interface::get_imei(){
+    return _imei;
+}
+
 int M66Interface::connect(const char *apn, const char *userName, const char *passPhrase)
 {
     set_credentials(apn, userName, passPhrase);
@@ -83,6 +94,9 @@ int M66Interface::connect()
         return NSAPI_ERROR_NO_ADDRESS;
     }
 
+    if(!set_imei()){
+        return NSAPI_ERROR_DEVICE_ERROR;
+    }
     return NSAPI_ERROR_OK;
 }
 
@@ -114,10 +128,6 @@ int M66Interface::disconnect()
 const char *M66Interface::get_ip_address()
 {
     return _m66.getIPAddress();
-}
-
-const char *M66Interface::get_imei(){
-    return _m66.getIMEI();
 }
 
 bool M66Interface::get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
