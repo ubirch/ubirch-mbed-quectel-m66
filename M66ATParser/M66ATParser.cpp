@@ -126,8 +126,9 @@ bool M66ATParser::requestDateTime() {
     bool tdStatus = false;
 
     tdStatus = (tx("AT+QNITZ=1") && rx("OK", 10)
-                && tx("AT+CTZU=1") && rx("OK", 10)
-                && tx("AT+CFUN=1") && rx("OK", 10));
+                && tx("AT+CTZU=3") && rx("OK", 10)
+                && tx("AT+CFUN=1") && rx("OK", 10)
+                && tx("AT+CCLK=\"17/05/19,16:37:54+02\"")&& rx("OK"));
 
     bool connected = false;
     for (int networkTries = 0; !connected && networkTries < 20; networkTries++) {
@@ -215,7 +216,7 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, in
     string responseLat;
 
     // get location - +QCELLLOC: Longitude, Latitude
-    if (!(tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response)))
+    if (!(tx("AT+QCELLLOC=1") && scan("+QCELLLOC: %s", response) && rx("OK")))
         return false;
 
     string str(response);
@@ -231,7 +232,7 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, in
     if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
                                     &datetime->year, &datetime->month, &datetime->day,
                                     &datetime->hour, &datetime->minute, &datetime->second,
-                                    &zone)))) {
+                                    zone))) && rx("OK")){
         CSTDEBUG("M66 [--] !! no time received\r\n");
         return false;
     }
@@ -241,7 +242,7 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, in
     CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
              datetime->year, datetime->month, datetime->day,
              datetime->hour, datetime->minute, datetime->second,
-             *zone);
+             zone);
     return true;
 }
 
