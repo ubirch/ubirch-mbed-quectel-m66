@@ -37,6 +37,13 @@
  */
 class M66ATParser {
 public:
+    /** M66ATParser lifetime
+     * @param tx        TX pin
+     * @param rx        RX pin
+     * @param rstPin    Reset pin
+     * @param pwrPin    PowerKey pin
+     * @param debug     Enable debugging
+     */
     M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug = false);
 
     /**
@@ -50,9 +57,43 @@ public:
     * Reset M66
     *
     * @return true only if M66 resets successfully
+    * play with PWERKEY - (only) to reset the modem, make sure the modem is reset and alive
     */
     bool reset(void);
 
+    /**
+    * Check if the Modem is poweredup and running
+    *
+    * @return true only if M66 OK's to AT cmd
+    */
+    bool isModemAlive();
+
+    /**
+    * Check the modem GPRS status
+    *
+    * @return 0: GPRS is detached; 1: GPRS is attached
+    */
+    int checkGPRS();
+
+    /**
+    * Power down the modem using AT cmd and bring the power pin to low
+    *
+    * @return true if AT-powerDown was OK
+    */
+    bool powerDown(void);
+
+    /**
+    * Disconnect M66 from AP
+    *
+    * @return true only if M66 is disconnected successfully
+    */
+    bool disconnect(void);
+
+    /**
+    * Set up the NTP server and enable the M66 clock functions
+    *
+    * @return true if AT cmd were sucessful
+    */
     bool requestDateTime(void);
 
     /**
@@ -66,13 +107,6 @@ public:
     bool connect(const char *apn, const char *userName, const char *passPhrase);
 
     /**
-    * Disconnect M66 from AP
-    *
-    * @return true only if M66 is disconnected successfully
-    */
-    bool disconnect(void);
-
-    /**
      * Get the IP address of M66
      *
      * @return null-teriminated IP address or null if no IP address is assigned
@@ -84,7 +118,7 @@ public:
      *
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    const char *getIMEI();
+    bool getIMEI(char *getimei);
 
     /**
      * Get the Latitude, Longitude, Date and Time of the device
@@ -94,7 +128,7 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool getLocation(char *lat, char *lon, rtc_datetime_t *datetime);
+    bool getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
 
 
     /**
@@ -115,6 +149,13 @@ public:
     bool isConnected(void);
 
     /**
+    * Get the IP of the host
+    *
+    * @return true only if the chip has an IP address
+    */
+    bool queryIP(const char *url, const char *theIP);
+
+    /**
     * Open a socketed connection
     *
     * @param type the type of socket to open "UDP" or "TCP"
@@ -127,6 +168,7 @@ public:
 
     /**
     * Sends data to an open socket
+    * 1046 Bytes can be sent each time
     *
     * @param id id of socket to send to
     * @param data data to be sent
@@ -134,6 +176,13 @@ public:
     * @return true only if data sent successfully
     */
     bool send(int id, const void *data, uint32_t amount);
+
+    /**
+    * Get the M66 connection status
+    *
+    * @return status
+    */
+    int queryConnection();
 
     /**
     * Receives data from an open socket
@@ -228,9 +277,9 @@ public:
     * @param max the number of bytes to read
     * @return the amount of bytes read
     */
-    size_t read(char *buffer, size_t max);
+    size_t read(char *buffer, size_t max, uint32_t timeout = 5);
 
-    size_t flushRx(char *buffer, size_t max);
+    size_t flushRx(char *buffer, size_t max, uint32_t timeout = 5);
 
 private:
     BufferedSerial _serial;
@@ -246,9 +295,12 @@ private:
 
     void _packet_handler(const char *response);
 
-    uint32_t _timeout;
+    void _debug_dump(const char *prefix, const uint8_t *b, size_t size);
+
+    int _timeout;
     char _ip_buffer[16];
     char _imei[16];
+
 };
 
 #endif

@@ -28,8 +28,8 @@
 #ifndef M66_INTERFACE_H
 #define M66_INTERFACE_H
 
-#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
-#include"mbed.h"
+#include "mbed.h"
+#include "fsl_rtc.h"
 #include "M66ATParser.h"
 
 #define M66_SOCKET_COUNT 5
@@ -37,8 +37,7 @@
 /** M66Interface class
  *  Implementation of the NetworkStack for the M66 GSM Modem
  */
-class M66Interface : public NetworkStack, public CellularInterface
-{
+class M66Interface : public NetworkStack, public CellularInterface {
 public:
     /** M66Interface lifetime
      * @param tx        TX pin
@@ -49,15 +48,46 @@ public:
      */
     M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug = false);
 
+    /**
+    * Startup the M66
+    *
+    * @return true only if M66 was started correctly
+    */
+    int powerUpModem();
+
+    /**
+    * Reset M66
+    *
+    * @return true only if M66 resets successfully
+    * play with PWERKEY - (only) to reset the modem, make sure the modem is reset and alive
+    */
     int reset(void);
 
-    /** Start the interface
-     *
-     *  Attempts to connect to a GSM network. Requires apn, username and passphrase to be set.
-     *  If passphrase is invalid, NSAPI_ERROR_AUTH_ERROR is returned.
-     *
-     *  @return         0 on success, negative error code on failure
-     */
+    /**
+    * Power down the modem using AT cmd and bring the power pin to low
+    *
+    * @return true if AT-powerDown was OK
+    */
+    int powerDown(void);
+
+    /**
+    * Check if the Modem is poweredup and running
+    *
+    * @return true only if M66 OK's to AT cmd
+    */
+    int isModemAlive(void);
+
+    /**
+    * Check the modem GPRS status
+    *
+    * @return 0: GPRS is detached; 1: GPRS is attached
+    */
+    int checkGPRS();
+
+    /**
+    * Connect M66 to the network
+    *
+    */
     virtual int connect();
 
     /** Start the interface
@@ -91,9 +121,14 @@ public:
      */
     virtual const char *get_ip_address();
 
-    /** Get the internally stored IP address
-     *  @return             IP address of the interface or null if not yet connected
+    /** Set the IMEI
+     *  @return             true if IMEI is set sucessfully
      */
+    int set_imei();
+
+   /** Get the internally stored IMEI
+    *  @return             IMEI of the Device or null if not yet Powered on
+    */
     const char *get_imei();
 
     /**
@@ -104,7 +139,9 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lat, char *lon, rtc_datetime_t *datetime);
+    bool get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
+
+    bool queryIP(const char *url, const char *theIP);
 
     /**
      * Get the Battery status, level and voltage of the device
@@ -242,8 +279,7 @@ protected:
      *
      *  @return The underlying NetworkStack object
      */
-    virtual NetworkStack *get_stack()
-    {
+    virtual NetworkStack *get_stack() {
         return this;
     }
 
@@ -254,11 +290,13 @@ private:
     char _apn[10];
     char _userName[10];
     char _passPhrase[10];
+    char _imei[16];
 
     void event();
 
     struct {
         void (*callback)(void *);
+
         void *data;
     } _cbs[M66_SOCKET_COUNT];
 };

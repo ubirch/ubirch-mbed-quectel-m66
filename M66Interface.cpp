@@ -22,14 +22,14 @@
  */
 
 #include <string.h>
-#include <targets/TARGET_Freescale/TARGET_KSDK2_MCUS/TARGET_K82F/drivers/fsl_rtc.h>
+#include <fsl_rtc.h>
 #include "M66Interface.h"
 
-// Various timeouts for different ESP8266 operations
+// Various timeouts for different M66 operations
 #define M66_CONNECT_TIMEOUT 15000
-#define M66_SEND_TIMEOUT    500
-#define M66_RECV_TIMEOUT    0
-#define M66_MISC_TIMEOUT    500
+#define M66_SEND_TIMEOUT    15000
+#define M66_RECV_TIMEOUT    40000
+#define M66_MISC_TIMEOUT    40000
 
 // M66Interface implementation
 M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug)
@@ -41,8 +41,35 @@ M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPi
     _m66.attach(this, &M66Interface::event);
 }
 
-int M66Interface::reset(void) {
+int M66Interface::powerUpModem(){
     return _m66.startup();
+}
+
+int M66Interface::reset(void) {
+    return _m66.reset();
+}
+
+int M66Interface::powerDown(){
+    return _m66.powerDown();
+}
+
+int M66Interface::isModemAlive() {
+    return _m66.isModemAlive();
+}
+
+int M66Interface::checkGPRS() {
+    return _m66.checkGPRS();
+}
+
+int M66Interface::set_imei(){
+    if(!_m66.getIMEI(_imei)){
+        return NSAPI_ERROR_DEVICE_ERROR;
+    }
+    return NSAPI_ERROR_OK;
+}
+
+const char *M66Interface::get_imei(){
+    return _imei;
 }
 
 int M66Interface::connect(const char *apn, const char *userName, const char *passPhrase)
@@ -67,6 +94,9 @@ int M66Interface::connect()
         return NSAPI_ERROR_NO_ADDRESS;
     }
 
+    if(set_imei()){
+        return NSAPI_ERROR_DEVICE_ERROR;
+    }
     return NSAPI_ERROR_OK;
 }
 
@@ -100,12 +130,12 @@ const char *M66Interface::get_ip_address()
     return _m66.getIPAddress();
 }
 
-const char *M66Interface::get_imei(){
-    return _m66.getIMEI();
+bool M66Interface::get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
+    return _m66.getLocation(lon, lat, datetime, zone);
 }
 
-bool M66Interface::get_location_date(char *lat, char *lon, rtc_datetime_t *datetime) {
-    return _m66.getLocation(lat, lon, datetime);
+bool M66Interface::queryIP(const char *url, const char *theIP){
+    return _m66.queryIP(url, theIP);
 }
 
 bool M66Interface::getModemBattery(uint8_t *status, int *level, int *voltage){
