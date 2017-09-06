@@ -126,9 +126,9 @@ bool M66ATParser::requestDateTime() {
     bool tdStatus = false;
 
     tdStatus = (tx("AT+QNITZ=1") && rx("OK", 10)
-                && tx("AT+CTZU=3") && rx("OK", 10)
+                && tx("AT+CTZU=2") && rx("OK", 10)
                 && tx("AT+CFUN=1") && rx("OK", 10)
-                && tx("AT+CCLK=\"17/05/19,16:37:54+02\"")&& rx("OK"));
+                && tx("AT+CCLK=\"17/05/19,16:37:54+00\"")&& rx("OK"));
 
     bool connected = false;
     for (int networkTries = 0; !connected && networkTries < 20; networkTries++) {
