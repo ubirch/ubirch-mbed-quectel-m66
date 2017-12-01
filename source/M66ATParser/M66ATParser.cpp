@@ -230,19 +230,37 @@ bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
 
     // get network time
     if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
-                                    datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
-                                    datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
-                                    datetime->tm_zone))) && rx("OK")){
+                                    &datetime->tm_year, &datetime->tm_mon, &datetime->tm_mday,
+                                    &datetime->tm_hour, &datetime->tm_min, &datetime->tm_sec,
+                                    &zone))) && rx("OK")){
         CSTDEBUG("M66 [--] !! no time received\r\n");
         return false;
     }
 
-    datetime->tm_year += 2000;
+    //    int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
+    //    int tm_min;			/* Minutes.	[0-59] */
+    //    int tm_hour;			/* Hours.	[0-23] */
+    //    int tm_mday;			/* Day.		[1-31] */
+    //    int tm_mon;			/* Month.	[0-11] */
+    //    int tm_year;			/* Year	- 1900.  */
+    //    int tm_wday;			/* Day of week.	[0-6] */
+    //    int tm_yday;			/* Days in year.[0-365]	*/
+    //    int tm_isdst;			/* DST.		[-1/0/1]*/
+    /* M66 returns only last 2-digits of the year
+     * 'AT+CCLK="17/05/19,16:37:54+00"'
+     * to convert time into UTC `mktime(tm)`, we need time number of years since 1900
+     * Hence the calculation
+     * year + 200 > gives us current year - 1900 = 100
+     * So in this case add 100 to the year received from M66
+     */
+    datetime->tm_year += 100;
+    /* calculate months from 0*/
+    datetime->tm_mon -= 1;
 
-    CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%s\r\n",
+    CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
              datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
              datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
-             datetime->tm_zone);
+             zone);
     return true;
 }
 
