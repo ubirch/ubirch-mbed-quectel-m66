@@ -1,0 +1,8 @@
+mbed-os/features/mbedtls/*
+ubirch-mbed-quectel-m66/cmake-*
+ubirch-mbed-quectel-m66/mbed-os/*
+ubirch-mbed-quectel-m66/TESTS/*
+ubirch-mbed-quectel-m66/example/*
+cmake-*
+Debug/*
+example/m66TCP.cpp

@@ -32,8 +32,8 @@
 #define M66_MISC_TIMEOUT    40000
 
 // M66Interface implementation
-M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug)
-    : _m66(tx, rx, rstPin, pwrPin, debug)
+M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin)
+    : _m66(tx, rx, rstPin, pwrPin)
 {
     memset(_ids, 0, sizeof(_ids));
     memset(_cbs, 0, sizeof(_cbs));
@@ -130,7 +130,7 @@ const char *M66Interface::get_ip_address()
     return _m66.getIPAddress();
 }
 
-bool M66Interface::get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
+bool M66Interface::get_location_date(char *lon, char *lat, tm *datetime, int *zone) {
     return _m66.getLocation(lon, lat, datetime, zone);
 }
 

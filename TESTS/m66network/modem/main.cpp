@@ -47,7 +47,7 @@ void modemHTTP() {
     ret = socket.open(&modem);
     TEST_ASSERT_MESSAGE(ret == 0, "Socket Open Fail!");
 
-    ret = socket.connect("www.arm.com", 80);
+    ret = socket.connect("www.ubirch.com", 80);
     printf("socket connect %d\r\n", ret);
     TEST_ASSERT_MESSAGE(ret == 0, "Socket Connect Fail!");
 

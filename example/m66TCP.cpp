@@ -3,9 +3,9 @@
  * and sends a HTTP GET request
  */
 
-#if 0
+#if 1
 #include "mbed.h"
-#include "../mbed-os-quectelM66-driver/M66Interface.h"
+#include "../m66/M66Interface.h"
 #include "../config.h"
 
 M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER, true);
@@ -44,9 +44,9 @@ void sendData(void) {
 
             if (ret >= 0) {
 
-                int message_size = snprintf(NULL, 0, message_template, imeiHash);
-                char *message = (char *) malloc((size_t) (message_size + 1));
-                sprintf(message, message_template, imeiHash);
+//                int message_size = snprintf(NULL, 0, message_template, imeiHash);
+//                char *message = (char *) malloc((size_t) (message_size + 1));
+//                sprintf(message, message_template, imeiHash);
 
                 int r = socket.send(tempMessage, (nsapi_size_t) strlen(tempMessage));
                 if (r > 0) {
@@ -64,7 +64,7 @@ void sendData(void) {
                     printf("send failed: %d\r\n", r);
                 }
 
-                free(message);
+//                free(message);
             }
             // Close the socket to return its memory and bring down the network interface
             socket.close();

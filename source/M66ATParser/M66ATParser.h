@@ -44,7 +44,7 @@ public:
      * @param pwrPin    PowerKey pin
      * @param debug     Enable debugging
      */
-    M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug = false);
+    M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin);
 
     /**
     * Startup the M66
@@ -128,7 +128,7 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
+    bool getLocation(char *lon, char *lat, tm *datetime, int *zone = 0);
 
 
     /**

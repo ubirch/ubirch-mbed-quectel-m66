@@ -46,7 +46,7 @@ public:
      * @param pwrPin    PowerKey pin
      * @param debug     Enable debugging
      */
-    M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin, bool debug = false);
+    M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin);
 
     /**
     * Startup the M66
@@ -139,7 +139,7 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lon, char *lat, rtc_datetime_t *datetime, int *zone = 0);
+    bool get_location_date(char *lon, char *lat, tm *datetime, int *zone = 0);
 
     bool queryIP(const char *url, const char *theIP);
 

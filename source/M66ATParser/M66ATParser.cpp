@@ -45,7 +45,7 @@
 #define MAX_SEND_BYTES     1400
 
 
-M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin, bool debug)
+M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin)
     : _serial(txPin, rxPin, RXTX_BUFFER_SIZE), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
     _serial.baud(GSM_UART_BAUD_RATE);
     _powerPin = 0;
@@ -208,7 +208,7 @@ bool M66ATParser::getIMEI(char *getimei) {
     return 1;
 }
 
-bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, int *zone) {
+bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
 
     char response[32] = "";
 
@@ -230,19 +230,19 @@ bool M66ATParser::getLocation(char *lon, char *lat, rtc_datetime_t *datetime, in
 
     // get network time
     if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
-                                    &datetime->year, &datetime->month, &datetime->day,
-                                    &datetime->hour, &datetime->minute, &datetime->second,
-                                    zone))) && rx("OK")){
+                                    datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
+                                    datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
+                                    datetime->tm_zone))) && rx("OK")){
         CSTDEBUG("M66 [--] !! no time received\r\n");
         return false;
     }
 
-    datetime->year += 2000;
+    datetime->tm_year += 2000;
 
-    CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
-             datetime->year, datetime->month, datetime->day,
-             datetime->hour, datetime->minute, datetime->second,
-             zone);
+    CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%s\r\n",
+             datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
+             datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
+             datetime->tm_zone);
     return true;
 }
 
