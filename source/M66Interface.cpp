@@ -4,7 +4,7 @@
  * @author Niranjan Rao
  * @date 2017-02-09
  *
- * @copyright &copy; 2015, 2016 ubirch GmbH (https://ubirch.com)
+ * @copyright &copy; 2015, 2016, 2017 ubirch GmbH (https://ubirch.com)
  *
  * ```
  * Licensed under the Apache License, Version 2.0 (the "License");

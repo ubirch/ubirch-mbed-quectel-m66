@@ -236,6 +236,8 @@ bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
         CSTDEBUG("M66 [--] !! no time received\r\n");
         return false;
     }
+    if (datetime->tm_mon == 05 && datetime->tm_year == 17)
+        return false;
 
     //    int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
     //    int tm_min;			/* Minutes.	[0-59] */
