@@ -559,6 +559,7 @@ int M66ATParser::checkURC(const char *response) {
         || !strncmp("Call Ready", response, 10)
         || !strncmp("+CPIN: READY", response, 12)
         || !strncmp("+QNTP: 0", response, 8)
+        || !strncmp("+QNTP: 5", response, 8)
         || !strncmp("+PDP DEACT", response, 10)
         ) {
         return 0;

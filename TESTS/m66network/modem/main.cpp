@@ -57,12 +57,12 @@ void modemHTTP() {
     ret = socket.open(&modem);
     TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "socket open failed");
 
-    ret = socket.connect("www.ubirch.com", 80);
+    ret = socket.connect("www.arm.com", 80);
     TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "socket connect failed");
 
     char theUrl[] = "GET / HTTP/1.1\r\n\r\n";
     int sendCount = socket.send(theUrl, sizeof(theUrl));
-    TEST_ASSERT_EQUAL_MESSAGE(sendCount, 18, "socket send failed");
+    TEST_ASSERT_EQUAL_MESSAGE(sendCount, sizeof(theUrl), "socket send failed");
 
     // receive a simple http response and check if it's not empty
     char rbuffer[64];
