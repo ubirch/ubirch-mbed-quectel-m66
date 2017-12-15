@@ -53,7 +53,7 @@ public:
     *
     * @return true only if M66 was started correctly
     */
-    int powerUpModem();
+    bool powerUpModem();
 
     /**
     * Reset M66
@@ -61,21 +61,21 @@ public:
     * @return true only if M66 resets successfully
     * play with PWERKEY - (only) to reset the modem, make sure the modem is reset and alive
     */
-    int reset(void);
+    bool reset();
 
     /**
     * Power down the modem using AT cmd and bring the power pin to low
     *
     * @return true if AT-powerDown was OK
     */
-    int powerDown(void);
+    bool powerDown();
 
     /**
     * Check if the Modem is poweredup and running
     *
     * @return true only if M66 OK's to AT cmd
     */
-    int isModemAlive(void);
+    bool isModemAlive();
 
     /**
     * Check the modem GPRS status
@@ -285,7 +285,7 @@ protected:
 
 private:
     M66ATParser _m66;
-    bool _ids[M66_SOCKET_COUNT];
+    bool _sockets[M66_SOCKET_COUNT];
 
     char _apn[10];
     char _userName[10];

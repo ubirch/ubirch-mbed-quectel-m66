@@ -33,27 +33,27 @@
 
 // M66Interface implementation
 M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin)
-    : _m66(tx, rx, rstPin, pwrPin)
+    : _m66(tx, rx, rstPin, pwrPin), _sockets(), _apn(), _userName(), _passPhrase(), _imei()
 {
-    memset(_ids, 0, sizeof(_ids));
+    memset(_sockets, 0, sizeof(_sockets));
     memset(_cbs, 0, sizeof(_cbs));
 
     _m66.attach(this, &M66Interface::event);
 }
 
-int M66Interface::powerUpModem(){
+bool M66Interface::powerUpModem(){
     return _m66.startup();
 }
 
-int M66Interface::reset(void) {
+bool M66Interface::reset() {
     return _m66.reset();
 }
 
-int M66Interface::powerDown(){
+bool M66Interface::powerDown(){
     return _m66.powerDown();
 }
 
-int M66Interface::isModemAlive() {
+bool M66Interface::isModemAlive() {
     return _m66.isModemAlive();
 }
 
@@ -153,24 +153,24 @@ int M66Interface::socket_open(void **handle, nsapi_protocol_t proto)
 {
     // Look for an unused socket
     int id = -1;
- 
+
     for (int i = 0; i < M66_SOCKET_COUNT; i++) {
-        if (!_ids[i]) {
+        if (!_sockets[i]) {
             id = i;
-            _ids[i] = true;
+            _sockets[i] = true;
             break;
         }
     }
- 
+
     if (id == -1) {
         return NSAPI_ERROR_NO_SOCKET;
     }
-    
+
     struct m66_socket *socket = new struct m66_socket;
     if (!socket) {
         return NSAPI_ERROR_NO_SOCKET;
     }
-    
+
     socket->id = id;
     socket->proto = proto;
     socket->connected = false;
@@ -183,12 +183,12 @@ int M66Interface::socket_close(void *handle)
     struct m66_socket *socket = (struct m66_socket *)handle;
     int err = 0;
     _m66.setTimeout(M66_MISC_TIMEOUT);
- 
+
     if (!_m66.close(socket->id)) {
         err = NSAPI_ERROR_DEVICE_ERROR;
     }
 
-    _ids[socket->id] = false;
+    _sockets[socket->id] = false;
     delete socket;
     return err;
 }
@@ -212,11 +212,11 @@ int M66Interface::socket_connect(void *handle, const SocketAddress &addr)
     if (!_m66.open(proto, socket->id, addr.get_ip_address(), addr.get_port())) {
         return NSAPI_ERROR_DEVICE_ERROR;
     }
-    
+
     socket->connected = true;
     return 0;
 }
-    
+
 int M66Interface::socket_accept(void *server, void **socket, SocketAddress *addr)
 {
     return NSAPI_ERROR_UNSUPPORTED;
@@ -226,11 +226,11 @@ int M66Interface::socket_send(void *handle, const void *data, unsigned size)
 {
     struct m66_socket *socket = (struct m66_socket *)handle;
     _m66.setTimeout(M66_SEND_TIMEOUT);
- 
+
     if (!_m66.send(socket->id, data, size)) {
         return NSAPI_ERROR_DEVICE_ERROR;
     }
- 
+
     return size;
 }
 
@@ -238,12 +238,12 @@ int M66Interface::socket_recv(void *handle, void *data, unsigned size)
 {
     struct m66_socket *socket = (struct m66_socket *)handle;
     _m66.setTimeout(M66_RECV_TIMEOUT);
- 
+
     int32_t recv = _m66.recv(socket->id, data, size);
     if (recv < 0) {
         return NSAPI_ERROR_WOULD_BLOCK;
     }
- 
+
     return recv;
 }
 
@@ -266,7 +266,7 @@ int M66Interface::socket_sendto(void *handle, const SocketAddress &addr, const v
         }
         socket->addr = addr;
     }
-    
+
     return socket_send(socket, data, size);
 }
 
@@ -283,7 +283,7 @@ int M66Interface::socket_recvfrom(void *handle, SocketAddress *addr, void *data,
 
 void M66Interface::socket_attach(void *handle, void (*callback)(void *), void *data)
 {
-    struct m66_socket *socket = (struct m66_socket *)handle;    
+    struct m66_socket *socket = (struct m66_socket *)handle;
     _cbs[socket->id].callback = callback;
     _cbs[socket->id].data = data;
 }

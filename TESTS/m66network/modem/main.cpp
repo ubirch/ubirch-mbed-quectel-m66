@@ -29,31 +29,24 @@ M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER);
 
 
 void fireUpModem(){
-    int ret = modem.powerUpModem();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Failed to power up the modem");
+    TEST_ASSERT_TRUE_MESSAGE(modem.powerUpModem(), "modem power-up failed");
 }
 
 void checkModem(){
-    int ret;
-    ret = modem.isModemAlive();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Modem is dead");
+    TEST_ASSERT_TRUE_MESSAGE(modem.isModemAlive(), "modem alive check failed");
 }
 
 void resetModem(){
-    int ret = modem.reset();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "reset failed");
+    TEST_ASSERT_TRUE_MESSAGE(modem.reset(), "modem reset failed");
 }
 
 void powerDown(){
-    int ret = modem.powerDown();
-    TEST_ASSERT_UNLESS_MESSAGE(ret ==  0, "Power Down fail!");
+    TEST_ASSERT_UNLESS_MESSAGE(modem.powerDown(), "modem power-down failed");
 }
 
 #if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
 void modemConnect(){
-    int ret;
-    ret = modem.connect(CELL_APN, CELL_USER, CELL_PWD);
-    TEST_ASSERT_UNLESS_MESSAGE(ret != 0, "Not Connected");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
 }
 
 void modemHTTP() {
@@ -62,29 +55,25 @@ void modemHTTP() {
     TCPSocket socket;
 
     ret = socket.open(&modem);
-    TEST_ASSERT_MESSAGE(ret == 0, "Socket Open Fail!");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "socket open failed");
 
     ret = socket.connect("www.ubirch.com", 80);
-    printf("socket connect %d\r\n", ret);
-    TEST_ASSERT_MESSAGE(ret == 0, "Socket Connect Fail!");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "socket connect failed");
 
-    char theUrl[] = "GET /HTTP/1.1\r\n\r\n";
+    char theUrl[] = "GET / HTTP/1.1\r\n\r\n";
     int sendCount = socket.send(theUrl, sizeof(theUrl));
-    printf("%d send count\r\n", sendCount);
-    TEST_ASSERT_MESSAGE(sendCount > 0, "Socket Send Failed!");
+    TEST_ASSERT_EQUAL_MESSAGE(sendCount, 18, "socket send failed");
 
-    // Recieve a simple http response and check if it's not empty
+    // receive a simple http response and check if it's not empty
     char rbuffer[64];
     int rcount = socket.recv(rbuffer, sizeof rbuffer);
-    printf("%d receive count\r\n", rcount);
-    TEST_ASSERT_UNLESS_MESSAGE(rcount < 0, "Socket recv error");
-    TEST_ASSERT_MESSAGE(rcount > 0, "No data received");
+    TEST_ASSERT_TRUE_MESSAGE(rcount > 0, "socket recv failed");
 
     ret = socket.close();
-    TEST_ASSERT_MESSAGE(ret == 0, "Socket Close Error");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "socket close failed");
 
     ret = modem.disconnect();
-    TEST_ASSERT_MESSAGE(ret == 0, "Disconnect ");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "modem disconnect failed ");
 }
 #endif
 
