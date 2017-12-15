@@ -41,7 +41,7 @@ void resetModem(){
 }
 
 void powerDown(){
-    TEST_ASSERT_UNLESS_MESSAGE(modem.powerDown(), "modem power-down failed");
+    TEST_ASSERT_TRUE_MESSAGE(modem.powerDown(), "modem power-down failed");
 }
 
 #if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
