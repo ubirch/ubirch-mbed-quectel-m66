@@ -139,7 +139,9 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lon, char *lat, tm *datetime, int *zone = 0);
+    bool get_location(char *lon, char *lat);
+
+    time_t getUnixTime();
 
     bool queryIP(const char *url, const char *theIP);
 

@@ -46,7 +46,12 @@
 
 
 M66ATParser::M66ATParser(PinName txPin, PinName rxPin, PinName rstPin, PinName pwrPin)
-    : _serial(txPin, rxPin, RXTX_BUFFER_SIZE), _powerPin(pwrPin), _resetPin(rstPin),  _packets(0), _packets_end(&_packets) {
+    : _serial(txPin, rxPin, RXTX_BUFFER_SIZE),
+      _powerPin(pwrPin),
+      _resetPin(rstPin),
+      _packets(0),
+      _packets_end(&_packets),
+      networkTimeSynchronised(false){
     _serial.baud(GSM_UART_BAUD_RATE);
     _powerPin = 0;
 }
@@ -128,7 +133,7 @@ bool M66ATParser::requestDateTime() {
     tdStatus = (tx("AT+QNITZ=1") && rx("OK", 10)
                 && tx("AT+CTZU=2") && rx("OK", 10)
                 && tx("AT+CFUN=1") && rx("OK", 10)
-                && tx("AT+CCLK=\"17/05/19,16:37:54+00\"")&& rx("OK"));
+                && tx("AT+CCLK=\"70/01/01,00:00:00+00\"")&& rx("OK"));
 
     bool connected = false;
     for (int networkTries = 0; !connected && networkTries < 20; networkTries++) {
@@ -208,7 +213,7 @@ bool M66ATParser::getIMEI(char *getimei) {
     return 1;
 }
 
-bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
+bool M66ATParser::getLocation(char *lon, char *lat) {
 
     char response[32] = "";
 
@@ -228,42 +233,69 @@ bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
     strcpy(lon, responseLon.c_str());
     strcpy(lat, responseLat.c_str());
 
-    // get network time
-    if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
-                                    &datetime->tm_year, &datetime->tm_mon, &datetime->tm_mday,
-                                    &datetime->tm_hour, &datetime->tm_min, &datetime->tm_sec,
-                                    &zone))) && rx("OK")){
-        CSTDEBUG("M66 [--] !! no time received\r\n");
-        return false;
-    }
-    if (datetime->tm_mon == 05 && datetime->tm_year == 17)
-        return false;
-
-    //    int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
-    //    int tm_min;			/* Minutes.	[0-59] */
-    //    int tm_hour;			/* Hours.	[0-23] */
-    //    int tm_mday;			/* Day.		[1-31] */
-    //    int tm_mon;			/* Month.	[0-11] */
-    //    int tm_year;			/* Year	- 1900.  */
-    //    int tm_wday;			/* Day of week.	[0-6] */
-    //    int tm_yday;			/* Days in year.[0-365]	*/
-    //    int tm_isdst;			/* DST.		[-1/0/1]*/
-    /* M66 returns only last 2-digits of the year
-     * 'AT+CCLK="17/05/19,16:37:54+00"'
-     * to convert time into UTC `mktime(tm)`, we need time number of years since 1900
-     * Hence the calculation
-     * year + 200 > gives us current year - 1900 = 100
-     * So in this case add 100 to the year received from M66
-     */
-    datetime->tm_year += 100;
-    /* calculate months from 0*/
-    datetime->tm_mon -= 1;
-
-    CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
-             datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
-             datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
-             *zone);
     return true;
+}
+
+bool M66ATParser::getNetworkTime(tm *datetime, int *zone) {
+    // get network time
+//    if (networkTimeSynchronised) {
+        if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
+                                        &datetime->tm_year, &datetime->tm_mon, &datetime->tm_mday,
+                                        &datetime->tm_hour, &datetime->tm_min, &datetime->tm_sec,
+                                        &zone))) && rx("OK")) {
+            CSTDEBUG("M66 [--] !! no time received\r\n");
+            return false;
+        }
+        if (datetime->tm_year == 70 && datetime->tm_mon == 01 &&
+            datetime->tm_mday == 01 && datetime->tm_hour == 0)
+            return false;
+
+        //    int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
+        //    int tm_min;			/* Minutes.	[0-59] */
+        //    int tm_hour;			/* Hours.	[0-23] */
+        //    int tm_mday;			/* Day.		[1-31] */
+        //    int tm_mon;			/* Month.	[0-11] */
+        //    int tm_year;			/* Year	- 1900.  */
+        //    int tm_wday;			/* Day of week.	[0-6] */
+        //    int tm_yday;			/* Days in year.[0-365]	*/
+        //    int tm_isdst;			/* DST.		[-1/0/1]*/
+        /* M66 returns only last 2-digits of the year
+         * 'AT+CCLK="17/05/19,16:37:54+00"'
+         * to convert time into UTC `mktime(tm)`, we need time number of years since 1900
+         * Hence the calculation
+         * year + 200 > gives us current year - 1900 = 100
+         * So in this case add 100 to the year received from M66
+         */
+        datetime->tm_year += 100;
+        /* calculate months from 0*/
+        datetime->tm_mon -= 1;
+
+        CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
+                 datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
+                 datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
+                 *zone);
+        return true;
+//    } else {
+//        CSTDEBUG("M66 [--] !! Waitin for network time synchronisation\r\n");
+//        return false;
+//    }
+}
+
+time_t M66ATParser::getUnixTime() {
+
+    tm dateTime = {};
+    int zone = -1;
+
+    bool gotTime = false;
+
+    for (int i = 0; i < 3 && !gotTime; ++i) {
+        gotTime = getNetworkTime(&dateTime, &zone);
+    }
+
+    if (!gotTime)
+        return NULL;
+    else
+        return mktime(&dateTime);
 }
 
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
@@ -558,11 +590,14 @@ int M66ATParser::checkURC(const char *response) {
     if (!strncmp("SMS Ready", response, 9)
         || !strncmp("Call Ready", response, 10)
         || !strncmp("+CPIN: READY", response, 12)
-        || !strncmp("+QNTP: 0", response, 8)
         || !strncmp("+QNTP: 5", response, 8)
         || !strncmp("+PDP DEACT", response, 10)
         ) {
         return 0;
+    }
+    /*TODO use networkTimeSynchronised  flag */
+    if (!strncmp("+QNTP: 0", response, 8)){
+        networkTimeSynchronised = true;
     }
 
     return -1;

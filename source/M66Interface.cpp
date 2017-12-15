@@ -130,8 +130,12 @@ const char *M66Interface::get_ip_address()
     return _m66.getIPAddress();
 }
 
-bool M66Interface::get_location_date(char *lon, char *lat, tm *datetime, int *zone) {
-    return _m66.getLocation(lon, lat, datetime, zone);
+bool M66Interface::get_location(char *lon, char *lat) {
+    return _m66.getLocation(lon, lat);
+}
+
+time_t M66Interface::getUnixTime() {
+    return _m66.getUnixTime();
 }
 
 bool M66Interface::queryIP(const char *url, const char *theIP){
