@@ -33,6 +33,23 @@ void fireUpModem(){
     TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Failed to power up the modem");
 }
 
+void checkModem(){
+    int ret;
+    ret = modem.isModemAlive();
+    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Modem is dead");
+}
+
+void resetModem(){
+    int ret = modem.reset();
+    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "reset failed");
+}
+
+void powerDown(){
+    int ret = modem.powerDown();
+    TEST_ASSERT_UNLESS_MESSAGE(ret ==  0, "Power Down fail!");
+}
+
+#if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
 void modemConnect(){
     int ret;
     ret = modem.connect(CELL_APN, CELL_USER, CELL_PWD);
@@ -69,22 +86,8 @@ void modemHTTP() {
     ret = modem.disconnect();
     TEST_ASSERT_MESSAGE(ret == 0, "Disconnect ");
 }
+#endif
 
-void checkModem(){
-    int ret;
-    ret = modem.isModemAlive();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "Modem is dead");
-}
-
-void resetModem(){
-    int ret = modem.reset();
-    TEST_ASSERT_UNLESS_MESSAGE(ret == 0, "reset failed");
-}
-
-void powerDown(){
-    int ret = modem.powerDown();
-    TEST_ASSERT_UNLESS_MESSAGE(ret ==  0, "Power Down fail!");
-}
 utest::v1::status_t greentea_failure_handler(const Case *const source, const failure_t reason) {
     greentea_case_failure_abort_handler(source, reason);
     return STATUS_CONTINUE;
@@ -94,14 +97,18 @@ Case cases[] = {
         Case("Modem PowerUp-0", fireUpModem, greentea_failure_handler),
         Case("Modem Alive-0", checkModem, greentea_failure_handler),
         Case("Modem Reset-0", resetModem, greentea_failure_handler),
-        Case("Connect-0", modemConnect, greentea_failure_handler),
-        Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
         Case("Modem Alive-1", checkModem, greentea_failure_handler),
         Case("Modem Reset-1", resetModem, greentea_failure_handler),
         Case("Modem Reset-2", resetModem, greentea_failure_handler),
         Case("Modem Reset-3", resetModem, greentea_failure_handler),
         Case("Modem Reset-4", resetModem, greentea_failure_handler),
         Case("Modem PowerDown", powerDown, greentea_failure_handler),
+#if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
+        Case("Connect-0", modemConnect, greentea_failure_handler),
+        Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
+#else
+#warning "CONNECTIONS NOT TESTED: set CELL_APN, CELL_USER, CELL_PWD in config.h"
+#endif
 };
 
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases) {

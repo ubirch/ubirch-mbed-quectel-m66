@@ -560,8 +560,6 @@ int M66ATParser::checkURC(const char *response) {
         || !strncmp("+CPIN: READY", response, 12)
         || !strncmp("+QNTP: 0", response, 8)
         || !strncmp("+PDP DEACT", response, 10)
-        || !strncmp("NORMAL POWER DOWN ", response, 18)
-
         ) {
         return 0;
     }
