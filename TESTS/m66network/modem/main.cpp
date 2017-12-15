@@ -25,7 +25,7 @@
 
 using namespace utest::v1;
 
-M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER, true);
+M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER);
 
 
 void fireUpModem(){

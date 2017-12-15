@@ -262,7 +262,7 @@ bool M66ATParser::getLocation(char *lon, char *lat, tm *datetime, int *zone) {
     CSTDEBUG("M66 [--] !! %d/%d/%d::%d:%d:%d::%d\r\n",
              datetime->tm_year, datetime->tm_mon, datetime->tm_mday,
              datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
-             zone);
+             *zone);
     return true;
 }
 
