@@ -141,7 +141,7 @@ public:
      */
     bool get_location(char *lon, char *lat);
 
-    time_t getUnixTime();
+    bool getUnixTime(time_t *t);
 
     bool queryIP(const char *url, const char *theIP);
 

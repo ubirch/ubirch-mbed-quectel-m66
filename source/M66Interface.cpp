@@ -134,8 +134,8 @@ bool M66Interface::get_location(char *lon, char *lat) {
     return _m66.getLocation(lon, lat);
 }
 
-time_t M66Interface::getUnixTime() {
-    return _m66.getUnixTime();
+bool M66Interface::getUnixTime(time_t *t) {
+    return _m66.getUnixTime(t);
 }
 
 bool M66Interface::queryIP(const char *url, const char *theIP){

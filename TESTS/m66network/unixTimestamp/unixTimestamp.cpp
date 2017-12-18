@@ -24,7 +24,8 @@ void TESTGetUnixTime(){
 
     char ip[20] = {0};
     modem.queryIP("www.arm.com", &ip[0]);
-    time_t ts = modem.getUnixTime();
+    time_t ts;
+    bool ret = modem.getUnixTime(&ts);
     printf("TS: %lu\r\n", ts);
     TEST_ASSERT_UNLESS_MESSAGE(ts == 0, "Failed to get unix time");
 }
@@ -33,7 +34,8 @@ void TESTGetTime(){
 
     TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
 
-    time_t ts = modem.getUnixTime();
+    time_t ts;
+    bool ret = modem.getUnixTime(&ts);
     printf("TS: %lu\r\n", ts);
     TEST_ASSERT_UNLESS_MESSAGE(ts == 0, "Failed to get unix time");
 }
@@ -51,7 +53,7 @@ utest::v1::status_t greentea_failure_handler(const Case *const source, const fai
 }
 
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases) {
-    GREENTEA_SETUP(100, "modemTests");
+    GREENTEA_SETUP(100, "default_auto");
     return verbose_test_setup_handler(number_of_cases);
 }
 

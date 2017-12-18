@@ -281,7 +281,7 @@ bool M66ATParser::getNetworkTime(tm *datetime, int *zone) {
 //    }
 }
 
-time_t M66ATParser::getUnixTime() {
+bool M66ATParser::getUnixTime(time_t *t) {
 
     tm dateTime = {};
     int zone = -1;
@@ -292,10 +292,14 @@ time_t M66ATParser::getUnixTime() {
         gotTime = getNetworkTime(&dateTime, &zone);
     }
 
-    if (!gotTime)
-        return NULL;
-    else
-        return mktime(&dateTime);
+    if (!gotTime){
+        return false;
+    }
+    else {
+        time_t tempTS = mktime(&dateTime);
+        t = &tempTS;
+        return true;
+    }
 }
 
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {

@@ -132,7 +132,7 @@ public:
 
     bool getNetworkTime(tm *datetime, int *zone);
 
-    time_t getUnixTime();
+    bool getUnixTime(time_t *t);
 
     /**
      * Get the Battery status, level and voltage of the device
