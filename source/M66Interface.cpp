@@ -134,6 +134,10 @@ bool M66Interface::get_location(char *lon, char *lat) {
     return _m66.getLocation(lon, lat);
 }
 
+bool M66Interface::getDateTime(tm *dateTime, int *zone) {
+    return _m66.getDateTime(dateTime, zone);
+}
+
 bool M66Interface::getUnixTime(time_t *t) {
     return _m66.getUnixTime(t);
 }

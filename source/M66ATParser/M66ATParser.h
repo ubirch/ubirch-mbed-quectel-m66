@@ -130,7 +130,7 @@ public:
      */
     bool getLocation(char *lon, char *lat);
 
-    bool getNetworkTime(tm *datetime, int *zone);
+    bool getDateTime(tm *datetime, int *zone);
 
     bool getUnixTime(time_t *t);
 

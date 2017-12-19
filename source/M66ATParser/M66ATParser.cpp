@@ -236,7 +236,7 @@ bool M66ATParser::getLocation(char *lon, char *lat) {
     return true;
 }
 
-bool M66ATParser::getNetworkTime(tm *datetime, int *zone) {
+bool M66ATParser::getDateTime(tm *datetime, int *zone) {
     // get network time
 //    if (networkTimeSynchronised) {
         if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
@@ -289,15 +289,14 @@ bool M66ATParser::getUnixTime(time_t *t) {
     bool gotTime = false;
 
     for (int i = 0; i < 3 && !gotTime; ++i) {
-        gotTime = getNetworkTime(&dateTime, &zone);
+        gotTime = getDateTime(&dateTime, &zone);
     }
 
     if (!gotTime){
         return false;
     }
     else {
-        time_t tempTS = mktime(&dateTime);
-        t = &tempTS;
+        *t = mktime(&dateTime);
         return true;
     }
 }
@@ -595,14 +594,15 @@ int M66ATParser::checkURC(const char *response) {
         || !strncmp("Call Ready", response, 10)
         || !strncmp("+CPIN: READY", response, 12)
         || !strncmp("+QNTP: 5", response, 8)
+        || !strncmp("+QNTP: 0", response, 8)
         || !strncmp("+PDP DEACT", response, 10)
         ) {
         return 0;
     }
     /*TODO use networkTimeSynchronised  flag */
-    if (!strncmp("+QNTP: 0", response, 8)){
+   /* if (!strncmp("+QNTP: 0", response, 8)){
         networkTimeSynchronised = true;
-    }
+    }*/
 
     return -1;
 }
