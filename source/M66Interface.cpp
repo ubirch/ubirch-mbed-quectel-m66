@@ -157,6 +157,29 @@ struct m66_socket {
     SocketAddress addr;
 };
 
+nsapi_error_t M66Interface::gethostbyname(const char *host, SocketAddress *address, nsapi_version_t version) {
+
+    if (address->set_ip_address(host)) {
+        if (version != NSAPI_UNSPEC && address->get_ip_version() != version) {
+            return NSAPI_ERROR_DNS_FAILURE;
+        }
+
+        return NSAPI_ERROR_OK;
+    }
+
+    char *ipbuff = new char[NSAPI_IP_SIZE];
+    int ret = 0;
+
+    if(!_m66.queryIP(host, ipbuff)) {
+        ret = NSAPI_ERROR_DEVICE_ERROR;
+    } else {
+        address->set_ip_address(ipbuff);
+    }
+
+    delete[] ipbuff;
+    return ret;
+}
+
 int M66Interface::socket_open(void **handle, nsapi_protocol_t proto)
 {
     // Look for an unused socket
