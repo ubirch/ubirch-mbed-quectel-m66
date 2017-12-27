@@ -13,31 +13,28 @@ using namespace utest::v1;
 
 M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER);
 
-void TESTGetUnixTime(){
-    /*char k[128], v[256];
-
-    greentea_send_kv("unixTime", "hello");
-    greentea_parse_kv(k, v, sizeof(k), sizeof(v));
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("OK", v, "failed to receive OK");*/
-
-    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
-
-    char ip[20] = {0};
-    modem.queryIP("www.arm.com", &ip[0]);
-    time_t ts;
-    bool ret = modem.getUnixTime(&ts);
-    printf("TS: %lu\r\n", ts);
-    TEST_ASSERT_UNLESS_MESSAGE(ts == 0, "Failed to get unix time");
+void TestfireUpModem(){
+    TEST_ASSERT_TRUE_MESSAGE(modem.powerUpModem(), "modem power-up failed");
 }
 
-void TESTGetTime(){
+void TestresetModem(){
+    TEST_ASSERT_TRUE_MESSAGE(modem.reset(), "modem reset failed");
+}
+
+void TestpowerDown(){
+    TEST_ASSERT_TRUE_MESSAGE(modem.powerDown(), "modem power-down failed");
+}
+
+void TESTGetUnixTime(){
 
     TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
 
     time_t ts;
     bool ret = modem.getUnixTime(&ts);
+
     printf("TS: %lu\r\n", ts);
-    TEST_ASSERT_UNLESS_MESSAGE(ts == 0, "Failed to get unix time");
+
+    TEST_ASSERT_TRUE_MESSAGE(modem.getUnixTime(&ts), "Failed to get unix time");
 }
 
 utest::v1::status_t case_teardown_handler(const Case *const source, const size_t passed, const size_t failed,
@@ -65,12 +62,6 @@ int main() {
             Case("Test Unix Time Stamp1", TESTGetUnixTime,
                  case_teardown_handler, greentea_failure_handler),
             Case("Test Unix Time Stamp2", TESTGetUnixTime,
-                 case_teardown_handler, greentea_failure_handler),
-            Case("Test TimeStamp", TESTGetTime,
-                 case_teardown_handler, greentea_failure_handler),
-            Case("Test TimeStamp1", TESTGetTime,
-                 case_teardown_handler, greentea_failure_handler),
-            Case("Test TimeStamp3", TESTGetTime,
                  case_teardown_handler, greentea_failure_handler)
     };
 

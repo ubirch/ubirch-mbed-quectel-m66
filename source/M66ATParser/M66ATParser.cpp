@@ -145,7 +145,15 @@ bool M66ATParser::requestDateTime() {
         // TODO check if we need to use thread wait
         wait_ms(1000);
     }
-    tdStatus &= (tx("AT+QNTP=\"pool.ntp.org\"") && rx("OK"));
+
+    if(!((tx("AT+QNTP=\"pool.ntp.org\"") && rx("OK"))&& rx("+QNTP: 0", 30))){
+        if(!((tx("AT+QNTP=\"1.pool.ntp.org\"") && rx("OK"))&& rx("+QNTP: 0", 30))){
+            CSTDEBUG("Failed to synchronize NTP time \r\n");
+            tdStatus &= false;
+        } else networkTimeSynchronised = true;
+
+    } else networkTimeSynchronised = true;
+
 
     return tdStatus && connected;
 }
@@ -238,7 +246,19 @@ bool M66ATParser::getLocation(char *lon, char *lat) {
 
 bool M66ATParser::getDateTime(tm *datetime, int *zone) {
     // get network time
-//    if (networkTimeSynchronised) {
+
+    for (int i = 0; i < 3 && !networkTimeSynchronised; i++) {
+        char cmd[512];
+        while (flushRx(cmd, sizeof(cmd), 10)) {
+            CIODEBUG("GSM (%02d) !! '%s'\r\n", strlen(cmd), cmd);
+            checkURC(cmd);
+        }
+        printf("Time (%d)\r\n", i);
+        Thread::wait(1000);
+    }
+
+    if (networkTimeSynchronised) {
+        printf("networkTimeSynchronised\r\n");
         if (!((tx("AT+CCLK?")) && (scan("+CCLK: \"%d/%d/%d,%d:%d:%d+%d\"",
                                         &datetime->tm_year, &datetime->tm_mon, &datetime->tm_mday,
                                         &datetime->tm_hour, &datetime->tm_min, &datetime->tm_sec,
@@ -247,8 +267,9 @@ bool M66ATParser::getDateTime(tm *datetime, int *zone) {
             return false;
         }
         if (datetime->tm_year == 70 && datetime->tm_mon == 01 &&
-            datetime->tm_mday == 01 && datetime->tm_hour == 0)
+            datetime->tm_mday == 01 && datetime->tm_hour == 0) {
             return false;
+        }
 
         //    int tm_sec;			/* Seconds.	[0-60] (1 leap second) */
         //    int tm_min;			/* Minutes.	[0-59] */
@@ -275,30 +296,27 @@ bool M66ATParser::getDateTime(tm *datetime, int *zone) {
                  datetime->tm_hour, datetime->tm_min, datetime->tm_sec,
                  *zone);
         return true;
-//    } else {
-//        CSTDEBUG("M66 [--] !! Waitin for network time synchronisation\r\n");
-//        return false;
-//    }
+    } else {
+        CSTDEBUG("M66 [--] !! Waitin for network time synchronisation\r\n");
+        return false;
+    }
 }
 
 bool M66ATParser::getUnixTime(time_t *t) {
 
     tm dateTime = {};
     int zone = -1;
+    bool ret = false;
 
-    bool gotTime = false;
-
-    for (int i = 0; i < 3 && !gotTime; ++i) {
-        gotTime = getDateTime(&dateTime, &zone);
+    for (int i = 0; i < 3; ++i) {
+        if (getDateTime(&dateTime, &zone)) {
+            *t = mktime(&dateTime);
+            ret = true;
+            break;
+        }
     }
 
-    if (!gotTime){
-        return false;
-    }
-    else {
-        *t = mktime(&dateTime);
-        return true;
-    }
+    return ret;
 }
 
 bool M66ATParser::modem_battery(uint8_t *status, int *level, int *voltage) {
@@ -594,14 +612,16 @@ int M66ATParser::checkURC(const char *response) {
         || !strncmp("Call Ready", response, 10)
         || !strncmp("+CPIN: READY", response, 12)
         || !strncmp("+QNTP: 5", response, 8)
-        || !strncmp("+QNTP: 0", response, 8)
         || !strncmp("+PDP DEACT", response, 10)
+        || !strncmp("+CFUN: 1", response, 8)
+
         ) {
         return 0;
     }
     /*TODO use networkTimeSynchronised  flag */
-   /* if (!strncmp("+QNTP: 0", response, 8)){
+    /*if (!strncmp("+QNTP: 0", response, 8)){
         networkTimeSynchronised = true;
+        return 0;
     }*/
 
     return -1;
