@@ -149,6 +149,7 @@ bool M66ATParser::requestDateTime() {
     if(!((tx("AT+QNTP=\"pool.ntp.org\"") && rx("OK"))&& rx("+QNTP: 0", 30))){
         if(!((tx("AT+QNTP=\"1.pool.ntp.org\"") && rx("OK"))&& rx("+QNTP: 0", 30))){
             CSTDEBUG("Failed to synchronize NTP time \r\n");
+            /*TODO call mbed NTP lib function*/
             tdStatus &= false;
         } else networkTimeSynchronised = true;
 
@@ -461,8 +462,10 @@ void M66ATParser::_packet_handler(const char *response) {
     packet->len = (uint32_t) amount;
     packet->next = 0;
 
+    // packet +1 is the same as packet + sizeof(struct packet)
     const size_t bytesRead = read((char *) (packet + 1), (size_t) amount, 10);
-    CIODUMP((uint8_t *) packet, (size_t) amount);
+    CIODUMP((uint8_t *) (packet + 1), (size_t) bytesRead);
+
     if (bytesRead != amount) {
         CSTDEBUG("M66 [%02d] EE read(%d) != expected(%d)\r\n", id, bytesRead, amount);
         free(packet);
