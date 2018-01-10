@@ -447,34 +447,34 @@ void M66ATParser::_packet_handler(const char *response) {
     int id;
     unsigned int amount;
 
-    // parse out the packet
+    // parse out the packetBuf
     if (sscanf(response, "+RECEIVE: %d, %d", &id, &amount) != 2) {
         return;
     }
     CSTDEBUG("M66 [%02d] -> %d bytes\r\n", id, amount);
 
-    struct packet *packet = (struct packet *) malloc(sizeof(struct packet) + amount);
-    if (!packet) {
+    struct packet *packetBuf = (struct packet *) malloc(sizeof(struct packet) + amount);
+    if (!packetBuf) {
         return;
     }
 
-    packet->id = id;
-    packet->len = (uint32_t) amount;
-    packet->next = 0;
+    packetBuf->id = id;
+    packetBuf->len = (uint32_t) amount;
+    packetBuf->next = 0;
 
-    // packet +1 is the same as packet + sizeof(struct packet)
-    const size_t bytesRead = read((char *) (packet + 1), (size_t) amount, 10);
-    CIODUMP((uint8_t *) (packet + 1), (size_t) bytesRead);
+    // packetBuf +1 is the same as packetBuf + sizeof(struct packetBuf)
+    const size_t bytesRead = read((char *) (packetBuf + 1), (size_t) amount, 10);
+    CIODUMP((uint8_t *) (packetBuf + 1), (size_t) bytesRead);
 
     if (bytesRead != amount) {
         CSTDEBUG("M66 [%02d] EE read(%d) != expected(%d)\r\n", id, bytesRead, amount);
-        free(packet);
+        free(packetBuf);
         return;
     }
 
-    // append to packet list
-    *_packets_end = packet;
-    _packets_end = &packet->next;
+    // append to packetBuf list
+    *_packets_end = packetBuf;
+    _packets_end = &packetBuf->next;
 }
 
 int32_t M66ATParser::recv(int id, void *data, uint32_t amount) {
@@ -520,7 +520,6 @@ int32_t M66ATParser::recv(int id, void *data, uint32_t amount) {
             return -1;
         }
     }
-
     // timeout
     return -1;
 }
