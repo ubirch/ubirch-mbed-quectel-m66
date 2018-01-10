@@ -128,8 +128,11 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool getLocation(char *lon, char *lat, tm *datetime, int *zone = 0);
+    bool getLocation(char *lon, char *lat);
 
+    bool getDateTime(tm *datetime, int *zone);
+
+    bool getUnixTime(time_t *t);
 
     /**
      * Get the Battery status, level and voltage of the device
@@ -297,6 +300,7 @@ private:
 
     void _debug_dump(const char *prefix, const uint8_t *b, size_t size);
 
+    bool networkTimeSynchronised;
     int _timeout;
     char _ip_buffer[16];
     char _imei[16];

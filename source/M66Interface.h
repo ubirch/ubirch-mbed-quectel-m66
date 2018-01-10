@@ -139,7 +139,11 @@ public:
      * @param datetime struct contains date and time
      * @return null-teriminated IP address or null if no IP address is assigned
      */
-    bool get_location_date(char *lon, char *lat, tm *datetime, int *zone = 0);
+    bool get_location(char *lon, char *lat);
+
+    bool getDateTime(tm * dateTime, int * zone);
+
+    bool getUnixTime(time_t *t);
 
     bool queryIP(const char *url, const char *theIP);
 
@@ -167,7 +171,7 @@ public:
      *                  version is chosen by the stack (defaults to NSAPI_UNSPEC)
      *  @return         0 on success, negative error code on failure
      */
-    using NetworkInterface::gethostbyname;
+    virtual nsapi_error_t gethostbyname(const char *host, SocketAddress *address, nsapi_version_t version);
 
     /** Add a domain name server to list of servers to query
      *

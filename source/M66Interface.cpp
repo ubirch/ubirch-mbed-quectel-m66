@@ -130,8 +130,16 @@ const char *M66Interface::get_ip_address()
     return _m66.getIPAddress();
 }
 
-bool M66Interface::get_location_date(char *lon, char *lat, tm *datetime, int *zone) {
-    return _m66.getLocation(lon, lat, datetime, zone);
+bool M66Interface::get_location(char *lon, char *lat) {
+    return _m66.getLocation(lon, lat);
+}
+
+bool M66Interface::getDateTime(tm *dateTime, int *zone) {
+    return _m66.getDateTime(dateTime, zone);
+}
+
+bool M66Interface::getUnixTime(time_t *t) {
+    return _m66.getUnixTime(t);
 }
 
 bool M66Interface::queryIP(const char *url, const char *theIP){
@@ -148,6 +156,29 @@ struct m66_socket {
     bool connected;
     SocketAddress addr;
 };
+
+nsapi_error_t M66Interface::gethostbyname(const char *host, SocketAddress *address, nsapi_version_t version) {
+
+    if (address->set_ip_address(host)) {
+        if (version != NSAPI_UNSPEC && address->get_ip_version() != version) {
+            return NSAPI_ERROR_DNS_FAILURE;
+        }
+
+        return NSAPI_ERROR_OK;
+    }
+
+    char *ipbuff = new char[NSAPI_IP_SIZE];
+    int ret = 0;
+
+    if(!_m66.queryIP(host, ipbuff)) {
+        ret = NSAPI_ERROR_DEVICE_ERROR;
+    } else {
+        address->set_ip_address(ipbuff);
+    }
+
+    delete[] ipbuff;
+    return ret;
+}
 
 int M66Interface::socket_open(void **handle, nsapi_protocol_t proto)
 {
