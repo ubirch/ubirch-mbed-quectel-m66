@@ -33,7 +33,7 @@
 
 // M66Interface implementation
 M66Interface::M66Interface(PinName tx, PinName rx, PinName rstPin, PinName pwrPin)
-    : _m66(tx, rx, rstPin, pwrPin), _sockets(), _apn(), _userName(), _passPhrase(), _imei()
+    : _m66(tx, rx, rstPin, pwrPin), _sockets(), _apn(), _userName(), _passPhrase(), _imei(), _cbs()
 {
     memset(_sockets, 0, sizeof(_sockets));
     memset(_cbs, 0, sizeof(_cbs));
@@ -72,9 +72,9 @@ const char *M66Interface::get_imei(){
     return _imei;
 }
 
-int M66Interface::connect(const char *apn, const char *userName, const char *passPhrase)
-{
-    set_credentials(apn, userName, passPhrase);
+nsapi_error_t M66Interface::connect(const char *sim_pin, const char *apn, const char *uname, const char *pwd) {
+    set_sim_pin(sim_pin);
+    set_credentials(apn, uname, pwd);
     return connect();
 }
 
@@ -100,7 +100,7 @@ int M66Interface::connect()
     return NSAPI_ERROR_OK;
 }
 
-int M66Interface::set_credentials(const char *apn, const char *userName, const char *passPhrase)
+void M66Interface::set_credentials(const char *apn, const char *userName, const char *passPhrase)
 {
     memset(_apn, 0, sizeof(_apn));
     strncpy(_apn, apn, sizeof(_apn));
@@ -110,8 +110,6 @@ int M66Interface::set_credentials(const char *apn, const char *userName, const c
 
     memset(_passPhrase, 0, sizeof(_passPhrase));
     strncpy(_passPhrase, passPhrase, sizeof(_passPhrase));
-
-    return 0;
 }
 
 int M66Interface::disconnect()
@@ -325,4 +323,27 @@ void M66Interface::event() {
             _cbs[i].callback(_cbs[i].data);
         }
     }
+}
+
+void M66Interface::set_sim_pin(const char *sim_pin) {
+
+}
+
+bool M66Interface::is_connected() {
+    return _m66.isConnected();
+}
+
+const char *M66Interface::get_netmask() {
+    return NULL;
+}
+
+const char *M66Interface::get_gateway() {
+    return NULL;
+}
+
+const char *M66Interface::get_iccid() {
+    if (!(_m66.tx("AT+QCCID") && _m66.scan("%22s", _iccid))) {
+        return NULL;
+    }
+    return _iccid;
 }

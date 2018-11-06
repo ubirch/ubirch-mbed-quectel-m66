@@ -28,25 +28,36 @@ using namespace utest::v1;
 M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER);
 
 
-void fireUpModem(){
+void fireUpModem() {
     TEST_ASSERT_TRUE_MESSAGE(modem.powerUpModem(), "modem power-up failed");
 }
 
-void checkModem(){
+void checkModem() {
     TEST_ASSERT_TRUE_MESSAGE(modem.isModemAlive(), "modem alive check failed");
 }
 
-void resetModem(){
+void resetModem() {
     TEST_ASSERT_TRUE_MESSAGE(modem.reset(), "modem reset failed");
 }
 
-void powerDown(){
+void powerDown() {
     TEST_ASSERT_TRUE_MESSAGE(modem.powerDown(), "modem power-down failed");
 }
 
+void modemIMEI() {
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, modem.set_imei());
+}
+
+void modemICCID() {
+    TEST_ASSERT_NOT_NULL(modem.get_iccid());
+}
+
 #if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
-void modemConnect(){
-    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
+
+void modemConnect() {
+    TEST_ASSERT_TRUE_MESSAGE(modem.powerUpModem(), "modem power-up failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(NULL, CELL_APN, CELL_USER, CELL_PWD),
+                              "modem connect failed");
 }
 
 void modemHTTP() {
@@ -75,6 +86,7 @@ void modemHTTP() {
     ret = modem.disconnect();
     TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, ret, "modem disconnect failed ");
 }
+
 #endif
 
 utest::v1::status_t greentea_failure_handler(const Case *const source, const failure_t reason) {
@@ -83,18 +95,20 @@ utest::v1::status_t greentea_failure_handler(const Case *const source, const fai
 }
 
 Case cases[] = {
-        Case("Modem PowerUp-0", fireUpModem, greentea_failure_handler),
-        Case("Modem Alive-0", checkModem, greentea_failure_handler),
-        Case("Modem Reset-0", resetModem, greentea_failure_handler),
-        Case("Modem Alive-1", checkModem, greentea_failure_handler),
-        Case("Modem Reset-1", resetModem, greentea_failure_handler),
-        Case("Modem Reset-2", resetModem, greentea_failure_handler),
-        Case("Modem Reset-3", resetModem, greentea_failure_handler),
-        Case("Modem Reset-4", resetModem, greentea_failure_handler),
-        Case("Modem PowerDown", powerDown, greentea_failure_handler),
+    Case("Modem PowerUp-0", fireUpModem, greentea_failure_handler),
+//    Case("Modem Alive-0", checkModem, greentea_failure_handler),
+//    Case("Modem Reset-0", resetModem, greentea_failure_handler),
+//    Case("Modem Alive-1", checkModem, greentea_failure_handler),
+//    Case("Modem Reset-1", resetModem, greentea_failure_handler),
+//    Case("Modem Reset-2", resetModem, greentea_failure_handler),
+//    Case("Modem Reset-3", resetModem, greentea_failure_handler),
+//    Case("Modem Reset-4", resetModem, greentea_failure_handler),
+//    Case("Modem PowerDown", powerDown, greentea_failure_handler),
+    Case("Modem get IMEI", modemIMEI, greentea_failure_handler),
+    Case("Modem get ICCID", modemICCID, greentea_failure_handler),
 #if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
-        Case("Connect-0", modemConnect, greentea_failure_handler),
-        Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
+    Case("Connect-0", modemConnect, greentea_failure_handler),
+    Case("HTTP Connect-0", modemHTTP, greentea_failure_handler),
 #else
 #warning "CONNECTIONS NOT TESTED: set CELL_APN, CELL_USER, CELL_PWD in config.h"
 #endif

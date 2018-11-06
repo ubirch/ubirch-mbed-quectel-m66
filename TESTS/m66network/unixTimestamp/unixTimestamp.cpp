@@ -25,9 +25,10 @@ void TestpowerDown(){
     TEST_ASSERT_TRUE_MESSAGE(modem.powerDown(), "modem power-down failed");
 }
 
+#if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
 void TESTGetUnixTime(){
 
-    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NSAPI_ERROR_OK, modem.connect(NULL, CELL_APN, CELL_USER, CELL_PWD), "modem connect failed");
 
     time_t ts;
     bool ret = modem.getUnixTime(&ts);
@@ -36,6 +37,7 @@ void TESTGetUnixTime(){
 
     TEST_ASSERT_TRUE_MESSAGE(modem.getUnixTime(&ts), "Failed to get unix time");
 }
+#endif
 
 utest::v1::status_t case_teardown_handler(const Case *const source, const size_t passed, const size_t failed,
                                           const failure_t reason) {
@@ -56,8 +58,9 @@ utest::v1::status_t greentea_test_setup(const size_t number_of_cases) {
 
 int main() {
 
+#if defined(CELL_APN) && defined(CELL_USER) && defined(CELL_PWD)
     Case cases[] = {
-            Case("Test Unix Time Stamp", TESTGetUnixTime,
+        Case("Test Unix Time Stamp", TESTGetUnixTime,
                  case_teardown_handler, greentea_failure_handler),
             Case("Test Unix Time Stamp1", TESTGetUnixTime,
                  case_teardown_handler, greentea_failure_handler),
@@ -67,4 +70,8 @@ int main() {
 
     Specification specification(greentea_test_setup, cases, greentea_test_teardown_handler);
     return !Harness::run(specification);
+#else
+#warning "TIMESTAMP NOT TESTED: set CELL_APN, CELL_USER, CELL_PWD in config.h"
+    return 0;
+#endif
 }

@@ -37,7 +37,7 @@
 /** M66Interface class
  *  Implementation of the NetworkStack for the M66 GSM Modem
  */
-class M66Interface : public NetworkStack, public CellularInterface {
+class M66Interface : public NetworkStack, public CellularBase {
 public:
     /** M66Interface lifetime
      * @param tx        TX pin
@@ -94,22 +94,21 @@ public:
      *
      *  Attempts to connect to a WiFi network.
      *
-     *  @param ssid      Name of the network to connect to
-     *  @param pass      Security passphrase to connect to the network
-     *  @param security  Type of encryption for connection (Default: NSAPI_SECURITY_NONE)
-     *  @param channel   This parameter is not supported, setting it to anything else than 0 will result in NSAPI_ERROR_UNSUPPORTED
+     *  @param sim_pin   SIM pin
+     *  @param apn       APN to connect to
+     *  @param uname     APN user name
+     *  @param pwd       APN password
      *  @return          0 on success, or error code on failure
      */
-    virtual int connect(const char *apn, const char *userName, const char *passPhrase);
+    virtual nsapi_error_t connect(const char *sim_pin, const char *apn, const char *uname, const char *pwd);
 
     /** Set the GSM Modem network credentials
      *
      *  @param apn        Address of the netwok Access Point Name
      *  @param userName   User name
      *  @param passPhrase The password
-     *  @return           0 on success, or error code on failure
      */
-    virtual int set_credentials(const char *apn, const char *userName, const char *passPhrase);
+    virtual void set_credentials(const char *apn, const char *userName, const char *passPhrase);
 
     /** Stop the interface
      *  @return             0 on success, negative on failure
@@ -130,6 +129,8 @@ public:
     *  @return             IMEI of the Device or null if not yet Powered on
     */
     const char *get_imei();
+
+    const char *get_iccid();
 
     /**
      * Get the Latitude, Longitude, Date and Time of the device
@@ -156,6 +157,14 @@ public:
      * @return return false if
      */
     bool getModemBattery(uint8_t *status, int *level, int *voltage);
+
+    virtual void set_sim_pin(const char *sim_pin);
+
+    virtual bool is_connected();
+
+    virtual const char *get_netmask();
+
+    virtual const char *get_gateway();
 
     /** Translates a hostname to an IP address with specific version
      *
@@ -294,7 +303,8 @@ private:
     char _apn[10];
     char _userName[10];
     char _passPhrase[10];
-    char _imei[16];
+    char _imei[17];
+    char _iccid[23];
 
     void event();
 

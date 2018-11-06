@@ -215,7 +215,7 @@ const char *M66ATParser::getIPAddress(void) {
 }
 
 bool M66ATParser::getIMEI(char *getimei) {
-    if (!(tx("AT+GSN") && scan("%s", _imei))) {
+    if (!(tx("AT+GSN") && scan("%16s", _imei))) {
         return 0;
     }
     strncpy(getimei, _imei, 16);
