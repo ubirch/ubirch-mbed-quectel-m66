@@ -37,7 +37,7 @@
 /** M66Interface class
  *  Implementation of the NetworkStack for the M66 GSM Modem
  */
-class M66Interface : public NetworkStack, public CellularInterface {
+class M66Interface : public NetworkStack, public CellularBase {
 public:
     /** M66Interface lifetime
      * @param tx        TX pin
@@ -109,7 +109,7 @@ public:
      *  @param passPhrase The password
      *  @return           0 on success, or error code on failure
      */
-    virtual int set_credentials(const char *apn, const char *userName, const char *passPhrase);
+    virtual void set_credentials(const char *apn, const char *userName, const char *passPhrase);
 
     /** Stop the interface
      *  @return             0 on success, negative on failure

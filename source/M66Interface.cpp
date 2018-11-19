@@ -100,7 +100,7 @@ int M66Interface::connect()
     return NSAPI_ERROR_OK;
 }
 
-int M66Interface::set_credentials(const char *apn, const char *userName, const char *passPhrase)
+void M66Interface::set_credentials(const char *apn, const char *userName, const char *passPhrase)
 {
     memset(_apn, 0, sizeof(_apn));
     strncpy(_apn, apn, sizeof(_apn));
@@ -110,8 +110,6 @@ int M66Interface::set_credentials(const char *apn, const char *userName, const c
 
     memset(_passPhrase, 0, sizeof(_passPhrase));
     strncpy(_passPhrase, passPhrase, sizeof(_passPhrase));
-
-    return 0;
 }
 
 int M66Interface::disconnect()
