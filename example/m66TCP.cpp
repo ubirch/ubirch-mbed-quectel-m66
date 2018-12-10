@@ -5,8 +5,7 @@
 
 #if 1
 #include "mbed.h"
-#include "../m66/M66Interface.h"
-#include "../config.h"
+#include "M66Interface.h"
 
 M66Interface modem(GSM_UART_TX, GSM_UART_RX, GSM_PWRKEY, GSM_POWER, true);
 DigitalOut led(LED1);

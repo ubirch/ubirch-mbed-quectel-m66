@@ -1,0 +1,19 @@
+{
+    "name": "Quectel M66 Networking Interface",
+    "config": {
+        "cellular": {
+            "apn": {
+                "macro_name": "CELL_APN",
+                "required": true
+            },
+            "user": {
+                "macro_name": "CELL_USER",
+                "required": true
+            },
+            "password": {
+                "macro_name": "CELL_PASSWORD",
+                "required": true
+            }
+        }
+    }
+}
